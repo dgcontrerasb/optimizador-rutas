@@ -1,0 +1,6 @@
+{
+  "name": "RutasJamar",
+  "description": "Planificador logístico de rutas de entrega para Bogotá y municipios cercanos con consolidación de pedidos, optimización de recorridos y visualización en mapa.",
+  "requestFramePermissions": ["geolocation"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
