@@ -845,14 +845,19 @@ header > div,
       <!-- Columna Izquierda: Flota Planificada (~380px con scroll independiente) -->
       <div class="fleetlog-left-col flex flex-col h-full bg-white dark:bg-slate-800 rounded-3xl border border-slate-200/80 dark:border-slate-700 shadow-xs overflow-hidden">
         <!-- Cabecera de la columna izquierda -->
-        <div class="px-4 py-3 border-b border-slate-100 dark:border-slate-700/80 flex items-center justify-between shrink-0 bg-slate-50/70 dark:bg-slate-800/70">
+        <div class="px-4 py-3 border-b border-slate-100 dark:border-slate-700/80 flex items-center justify-between shrink-0 bg-slate-50/70 dark:bg-slate-800/70 flex-wrap gap-2">
           <div class="flex items-center gap-2">
             <span class="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200">Flota Planificada</span>
             <span id="routesCountBadge" class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300 border border-blue-200 dark:border-blue-800 hidden"></span>
           </div>
-          <button id="btnViewAllRoutes" type="button" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-600 shadow-2xs transition cursor-pointer">
-            🗺️ Ver Todas en Mapa
-          </button>
+          <div class="flex items-center gap-1.5 flex-wrap">
+            <button id="btnReplanRoutes" type="button" class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-full text-xs font-bold bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/70 dark:hover:bg-amber-900/70 text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-700 shadow-2xs transition cursor-pointer" title="Replanear y re-zonificar todos los viajes según las direcciones actuales sin duplicados">
+              🔄 Replanear
+            </button>
+            <button id="btnViewAllRoutes" type="button" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-600 shadow-2xs transition cursor-pointer">
+              🗺️ Ver Todas
+            </button>
+          </div>
         </div>
 
         <!-- Buscador interactivo de clientes por nombre -->
@@ -869,60 +874,63 @@ header > div,
         <div id="routes" class="flex-1 overflow-y-auto p-3 space-y-3"></div>
       </div>
 
-      <!-- Columna Derecha: Contenedor del Mapa a Pantalla Completa con Botones Flotantes -->
+      <!-- Columna Derecha: Contenedor del Mapa a Pantalla Completa con Barra Unificada de Herramientas -->
       <div class="fleetlog-map-col flex flex-col h-full bg-white dark:bg-slate-800 rounded-3xl border border-slate-200/80 dark:border-slate-700 shadow-xs overflow-hidden relative">
         <div id="mapWrap" class="w-full h-full relative bg-slate-100 dark:bg-slate-800 rounded-3xl overflow-hidden">
-          <!-- Botones Flotantes Superiores Izquierda: Ruta Activa / Ver Todas -->
-          <div class="map-ui-overlay map-floating-controls absolute top-3.5 left-3.5 z-[1000] flex items-center gap-2 pointer-events-auto">
-            <span id="mapTitle" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/95 dark:bg-slate-800/95 backdrop-blur-md border border-slate-200 dark:border-slate-700 shadow-md text-xs font-semibold text-slate-800 dark:text-white">
-              🗺️ <strong id="activeRouteLabel">Ruta 1</strong>
-            </span>
-            <button id="btnViewAllRoutesMapBar" type="button" class="hidden sm:inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold bg-white/95 dark:bg-slate-800/95 backdrop-blur-md text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 shadow-md transition cursor-pointer">
-              🗺️ Ver Todas
-            </button>
-          </div>
-
-          <!-- Botones Flotantes Superiores Derecha: [ 📍 Micro 16px | 📌 Estándar ], [ 🛣️ Rutas Completas | 📍 Solo Pines ], [ 🗺️ Mapa | 🛰️ Satélite ] y [ 📸 Descargar Mapa ] -->
-          <div class="map-ui-overlay map-floating-controls absolute top-3.5 right-3.5 z-[1000] flex items-center gap-2 pointer-events-auto flex-wrap justify-end">
-            <!-- Píldora de tamaño de pines: Micro 16px vs Estándar -->
-            <div class="inline-flex rounded-full p-0.5 bg-white/95 dark:bg-slate-800/95 backdrop-blur-md border border-slate-200 dark:border-slate-700 shadow-md" role="group" title="Tamaño de los marcadores en el mapa">
-              <button id="btnPinSizeMicro" type="button" class="px-2.5 py-1 text-xs font-bold rounded-full transition shadow-xs bg-blue-600 text-white cursor-pointer" title="Micro-pines tipo gota de 16px (despejados, sin sobrecarga visual)">
-                📍 Micro 16px
-              </button>
-              <button id="btnPinSizeStandard" type="button" class="px-2.5 py-1 text-xs font-medium rounded-full transition text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white cursor-pointer" title="Pines en tamaño estándar">
-                📌 Estándar
+          <!-- Barra de Controles Superior Unificada del Mapa (Diseño Ergonómico sin Colisiones) -->
+          <div class="map-ui-overlay map-floating-controls absolute top-3 left-3 right-3 z-[1000] flex items-center justify-between gap-2 pointer-events-none flex-wrap">
+            <!-- Zona Izquierda: Contexto de Ruta Activa / Ver Todas -->
+            <div class="flex items-center gap-1.5 pointer-events-auto shrink-0">
+              <span id="mapTitle" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/95 dark:bg-slate-800/95 backdrop-blur-md border border-slate-200 dark:border-slate-700 shadow-md text-xs font-semibold text-slate-800 dark:text-white">
+                🗺️ <strong id="activeRouteLabel">Ruta 1</strong>
+              </span>
+              <button id="btnViewAllRoutesMapBar" type="button" class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-full text-xs font-semibold bg-white/95 dark:bg-slate-800/95 backdrop-blur-md text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 shadow-md transition cursor-pointer" title="Ver todas las rutas simultáneamente en el mapa">
+                🗺️ Ver Todas
               </button>
             </div>
 
-            <!-- Píldora de estilo de visualización: Rutas Completas vs Solo Pines -->
-            <div class="inline-flex rounded-full p-0.5 bg-white/95 dark:bg-slate-800/95 backdrop-blur-md border border-slate-200 dark:border-slate-700 shadow-md" role="group">
-              <button id="btnViewStyleFull" type="button" class="px-3 py-1 text-xs font-bold rounded-full transition shadow-xs bg-blue-600 text-white cursor-pointer" title="Ver polilíneas viales y pines de paradas">
-                🛣️ Rutas Completas
+            <!-- Zona Derecha: Herramientas Cartográficas, Modos Visuales y Exportación -->
+            <div class="flex items-center gap-1.5 pointer-events-auto flex-wrap justify-end">
+              <!-- Píldora de tamaño de pines: Micro 16px vs Estándar -->
+              <div class="inline-flex rounded-full p-0.5 bg-white/95 dark:bg-slate-800/95 backdrop-blur-md border border-slate-200 dark:border-slate-700 shadow-md" role="group" title="Tamaño de los marcadores en el mapa">
+                <button id="btnPinSizeMicro" type="button" class="px-2.5 py-1 text-xs font-bold rounded-full transition shadow-xs bg-blue-600 text-white cursor-pointer" title="Micro-pines tipo gota de 16px (despejados, sin sobrecarga visual)">
+                  📍 Micro 16px
+                </button>
+                <button id="btnPinSizeStandard" type="button" class="px-2.5 py-1 text-xs font-medium rounded-full transition text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white cursor-pointer" title="Pines en tamaño estándar">
+                  📌 Estándar
+                </button>
+              </div>
+
+              <!-- Píldora de estilo de visualización: Rutas Completas vs Solo Pines -->
+              <div class="inline-flex rounded-full p-0.5 bg-white/95 dark:bg-slate-800/95 backdrop-blur-md border border-slate-200 dark:border-slate-700 shadow-md" role="group">
+                <button id="btnViewStyleFull" type="button" class="px-2.5 py-1 text-xs font-bold rounded-full transition shadow-xs bg-blue-600 text-white cursor-pointer" title="Ver polilíneas viales y pines de paradas">
+                  🛣️ Rutas Completas
+                </button>
+                <button id="btnViewStylePins" type="button" class="px-2.5 py-1 text-xs font-medium rounded-full transition text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white cursor-pointer" title="Ocultar líneas de ruta y mostrar solo pines">
+                  📍 Solo Pines
+                </button>
+              </div>
+
+              <!-- Píldora de alternancia oficial Google Maps: Mapa vs Satélite -->
+              <div class="inline-flex rounded-full p-0.5 bg-white/95 dark:bg-slate-800/95 backdrop-blur-md border border-slate-200 dark:border-slate-700 shadow-md" role="group">
+                <button id="btnLayerRoadmap" type="button" class="px-2.5 py-1 text-xs font-bold rounded-full transition shadow-xs bg-blue-600 text-white cursor-pointer">
+                  🗺️ Mapa
+                </button>
+                <button id="btnLayerSatellite" type="button" class="px-2.5 py-1 text-xs font-semibold rounded-full transition text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white cursor-pointer">
+                  🛰️ Satélite
+                </button>
+              </div>
+
+              <!-- Botón flotante Descargar Mapa PNG (ID y clases intactas para exportación) -->
+              <button id="btnDownloadMapPng" type="button" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-white/95 dark:bg-slate-800/95 text-blue-600 dark:text-blue-400 backdrop-blur-md border border-slate-200 dark:border-slate-700 shadow-md hover:bg-blue-600 hover:text-white dark:hover:bg-blue-600 dark:hover:text-white transition cursor-pointer" title="Descargar vista actual del mapa en imagen PNG">
+                📸 Descargar Mapa
               </button>
-              <button id="btnViewStylePins" type="button" class="px-3 py-1 text-xs font-medium rounded-full transition text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white cursor-pointer" title="Ocultar líneas de ruta y mostrar solo pines">
-                📍 Solo Pines
+
+              <!-- Botón flotante Pantalla Completa -->
+              <button id="btnToggleFullscreen" type="button" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-white/95 dark:bg-slate-800/95 text-slate-700 dark:text-slate-200 backdrop-blur-md border border-slate-200 dark:border-slate-700 shadow-md hover:bg-slate-100 dark:hover:bg-slate-700 transition cursor-pointer" title="Ver mapa en pantalla completa (o presiona F / Esc para salir)">
+                <span id="fullscreenIcon">⛶</span> <span id="fullscreenText">Pantalla Completa</span>
               </button>
             </div>
-
-            <!-- Píldora de alternancia oficial Google Maps: Mapa vs Satélite -->
-            <div class="inline-flex rounded-full p-0.5 bg-white/95 dark:bg-slate-800/95 backdrop-blur-md border border-slate-200 dark:border-slate-700 shadow-md" role="group">
-              <button id="btnLayerRoadmap" type="button" class="px-3 py-1 text-xs font-bold rounded-full transition shadow-xs bg-blue-600 text-white cursor-pointer">
-                🗺️ Mapa
-              </button>
-              <button id="btnLayerSatellite" type="button" class="px-3 py-1 text-xs font-semibold rounded-full transition text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white cursor-pointer">
-                🛰️ Satélite
-              </button>
-            </div>
-
-            <!-- Botón flotante Descargar Mapa PNG -->
-            <button id="btnDownloadMapPng" type="button" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold bg-white/95 dark:bg-slate-800/95 text-blue-600 dark:text-blue-400 backdrop-blur-md border border-slate-200 dark:border-slate-700 shadow-md hover:bg-blue-600 hover:text-white dark:hover:bg-blue-600 dark:hover:text-white transition cursor-pointer" title="Descargar vista actual del mapa en imagen PNG">
-              📸 Descargar Mapa
-            </button>
-
-            <!-- Botón flotante Pantalla Completa -->
-            <button id="btnToggleFullscreen" type="button" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold bg-white/95 dark:bg-slate-800/95 text-slate-700 dark:text-slate-200 backdrop-blur-md border border-slate-200 dark:border-slate-700 shadow-md hover:bg-slate-100 dark:hover:bg-slate-700 transition cursor-pointer" title="Ver mapa en pantalla completa (o presiona F / Esc para salir)">
-              <span id="fullscreenIcon">⛶</span> <span id="fullscreenText">Pantalla Completa</span>
-            </button>
           </div>
 
           <!-- Contenedor del Mapa Leaflet -->
@@ -1854,6 +1862,34 @@ function toast(m, t = 'info') {
   e.textContent = m;
   c.append(e);
   setTimeout(() => { e.style.opacity = '0'; setTimeout(() => e.remove(), 300); }, 4000);
+}
+
+function toastWithAction(m, actionLabel, actionFn, t = 'info') {
+  const c = document.getElementById('toast');
+  if (!c) return;
+  const e = document.createElement('div');
+  e.className = (t === 'error' ? 'bg-red-600' : t === 'warn' ? 'bg-amber-600' : t === 'success' ? 'bg-blue-600' : 'bg-slate-800') +
+    ' text-white text-xs sm:text-sm px-4 py-3 rounded-2xl shadow-2xl pointer-events-auto flex items-center justify-between gap-3.5 transition-opacity duration-300 border border-white/20';
+  
+  const textSpan = document.createElement('span');
+  textSpan.textContent = m;
+  textSpan.className = 'font-medium leading-snug';
+  e.appendChild(textSpan);
+
+  if (actionLabel && actionFn) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'px-3 py-1.5 rounded-xl bg-white text-slate-900 font-bold text-xs hover:bg-slate-100 active:scale-95 transition shadow-sm cursor-pointer shrink-0';
+    btn.textContent = actionLabel;
+    btn.onclick = () => {
+      e.remove();
+      actionFn();
+    };
+    e.appendChild(btn);
+  }
+
+  c.append(e);
+  setTimeout(() => { e.style.opacity = '0'; setTimeout(() => e.remove(), 300); }, 9000);
 }
 
 function esc(x) {
@@ -3600,6 +3636,7 @@ document.getElementById('modalSaveBtn').onclick = async () => {
     if (selectedCandidateBarrio) d.barrio = selectedCandidateBarrio;
     if (selectedCandidateMuni) d.ciudad = selectedCandidateMuni;
     if (newAddr) d.direccion = newAddr;
+    d.zone = classifyZone(d);
 
     // Guardar en caché para recordar esta corrección
     const k = cacheKey(d);
@@ -3612,12 +3649,12 @@ document.getElementById('modalSaveBtn').onclick = async () => {
     }));
 
     closeEditLocationModal();
-    toast(`Ubicación actualizada para ${d.cliente}`, 'success');
 
     // Si estaba en alertas, removerla y verificar si ya todas están listas
     if (S.alerts && S.alerts.length) {
       S.alerts = S.alerts.filter(x => x.id !== d.id || !x.geocoded);
-      document.querySelector('#statAl div').textContent = S.alerts.length;
+      const statAlDiv = document.querySelector('#statAl div');
+      if (statAlDiv) statAlDiv.textContent = S.alerts.length;
       renderAlerts();
       if (S.alerts.length === 0) {
         document.getElementById('alertsSec').classList.add('hidden');
@@ -3626,7 +3663,7 @@ document.getElementById('modalSaveBtn').onclick = async () => {
       }
     }
 
-    // Si ya hay rutas generadas, recalcular y redibujar de inmediato
+    // Si ya hay rutas generadas, recalcular in-situ y ofrecer replanificación global
     if (S.routes && S.routes.length) {
       let affectedRoute = null;
       S.routes.forEach(r => {
@@ -3640,6 +3677,7 @@ document.getElementById('modalSaveBtn').onclick = async () => {
                   st.lng = d.lng;
                   st.direccion = d.direccion;
                   st.geocoded = d.geocoded;
+                  st.zone = d.zone;
                   if (d.barrio) st.barrio = d.barrio;
                   if (d.ciudad) st.ciudad = d.ciudad;
                   isAffected = true;
@@ -3655,6 +3693,7 @@ document.getElementById('modalSaveBtn').onclick = async () => {
           stops[foundIdx].lng = d.lng;
           stops[foundIdx].direccion = d.direccion;
           stops[foundIdx].geocoded = d.geocoded;
+          stops[foundIdx].zone = d.zone;
           if (d.barrio) stops[foundIdx].barrio = d.barrio;
           if (d.ciudad) stops[foundIdx].ciudad = d.ciudad;
           isAffected = true;
@@ -3662,9 +3701,12 @@ document.getElementById('modalSaveBtn').onclick = async () => {
         if (isAffected) {
           delete r._osrmCache;
           affectedRoute = r;
+          r.alts = alternatives(stops);
         }
-        r.alts = alternatives(stops);
       });
+
+      // Ejecutar desduplicación estricta en toda la flota
+      deduplicateFleetStops();
 
       renderRoutes();
 
@@ -3679,6 +3721,18 @@ document.getElementById('modalSaveBtn').onclick = async () => {
       } else if (S.routes[S.currentRouteIndex]) {
         draw(S.routes[S.currentRouteIndex]);
       }
+
+      syncAllRoutesRealDistance();
+
+      // Notificación interactiva con botón para replanear rutas automáticamente
+      toastWithAction(
+        `Ubicación actualizada para ${d.cliente}. ¿Deseas replanear las rutas para optimizar su asignación geográfica?`,
+        '🔄 Replanear Rutas',
+        () => replanRoutes(),
+        'success'
+      );
+    } else {
+      toast(`Ubicación actualizada para ${d.cliente}`, 'success');
     }
   } finally {
     if (saveBtn) {
@@ -4823,6 +4877,11 @@ function renderRoutes() {
     }
   }
 
+  const replanBtn = document.getElementById('btnReplanRoutes');
+  if (replanBtn) {
+    replanBtn.onclick = () => replanRoutes();
+  }
+
   const mapBarBtn = document.getElementById('btnViewAllRoutesMapBar');
   if (mapBarBtn) {
     if (S.viewMode === 'all') {
@@ -5323,36 +5382,146 @@ function closeReassignModal() {
   reassignTargetRouteId = null;
 }
 
+/**
+ * Auditoría estricta de unicidad de clientes en la flota:
+ * Asegura que ningún id de parada exista en más de una ruta ni repetido dentro de la misma ruta.
+ */
+function deduplicateFleetStops() {
+  if (!S.routes || !S.routes.length) return;
+  const seenIds = new Set();
+
+  S.routes.forEach(r => {
+    if (!r.alts) return;
+    const curStops = active(r);
+    const uniqueStops = [];
+
+    curStops.forEach(s => {
+      if (s && s.id !== undefined && !seenIds.has(s.id)) {
+        seenIds.add(s.id);
+        uniqueStops.push(s);
+      }
+    });
+
+    if (uniqueStops.length !== curStops.length) {
+      r.alts = alternatives(uniqueStops);
+      delete r._osrmCache;
+    }
+  });
+}
+
+/**
+ * Replanificación inteligente global de viajes:
+ * Re-zonifica todos los destinos con sus direcciones actuales y vuelve a generar las rutas
+ * optimizadas desde cero, garantizando cero duplicados y asignación óptima de sectores.
+ */
+function replanRoutes() {
+  if (!S.destinations || !S.destinations.length) {
+    toast('No hay destinos cargados para replanear', 'warn');
+    return;
+  }
+
+  const valid = S.destinations.filter(d => d.geocoded && d.vol <= MAX_VOL);
+  if (!valid.length) {
+    toast('No hay destinos geocodificados válidos para replanear', 'warn');
+    return;
+  }
+
+  // Sincronizar coordenadas y re-clasificar zonas para todos los destinos válidos
+  valid.forEach(d => {
+    d.zone = classifyZone(d);
+  });
+
+  // Limpiar cachés OSRM de rutas previas
+  if (S.routes) {
+    S.routes.forEach(r => { delete r._osrmCache; });
+  }
+
+  // Reconstruir grupos y optimizar secuencias A y B
+  const groups = clusterStrictZones(valid);
+  S.routes = groups.map((stops, i) => {
+    const x = alternatives(stops);
+    return {
+      id: i,
+      color: S.colors[i % S.colors.length],
+      alts: x,
+      option: x.chosen,
+      visible: true
+    };
+  });
+
+  // Asegurar unicidad matemática absoluta
+  deduplicateFleetStops();
+
+  renderRoutes();
+  if (S.viewMode === 'all') {
+    drawAllRoutes();
+  } else if (S.routes[0]) {
+    S.currentRouteIndex = 0;
+    draw(S.routes[0]);
+  }
+
+  syncAllRoutesRealDistance();
+  toast(`✅ ${S.routes.length} rutas replanificadas con éxito con direcciones actualizadas y sin duplicados`, 'success');
+}
+
 function move(id, to) {
   id = +id;
   to = +to;
-  const from = S.routes.find(r => active(r).some(d => d.id === id));
-  const dest = S.routes[to];
-  if (!from || !dest || from === dest) return false;
+  const dest = S.routes ? S.routes.find(r => r.id === to) : null;
+  if (!dest) return false;
 
-  const d = active(from).find(x => x.id === id);
-  const target = active(dest);
+  // Encontrar todas las rutas donde esté este id
+  const fromRoutes = (S.routes || []).filter(r => (r.alts?.a || []).some(s => s.id === id) || (r.alts?.b || []).some(s => s.id === id));
+  if (!fromRoutes.length) {
+    toast('No se encontró la parada en ninguna ruta', 'error');
+    return false;
+  }
+  const from = fromRoutes[0];
+  if (from.id === dest.id) return false;
 
-  if (target.length >= MAX_DEST || vol(target) + d.vol > MAX_VOL) {
+  // Buscar objeto canónico del destino
+  const d = S.destinations.find(x => x.id === id) || (from.alts?.a || []).find(x => x.id === id) || (from.alts?.b || []).find(x => x.id === id);
+  if (!d) return false;
+
+  const targetStops = (active(dest) || []).filter(s => s.id !== id);
+
+  if (targetStops.length + 1 > MAX_DEST || vol(targetStops) + d.vol > MAX_VOL) {
     toast(`No se puede mover: superaría la capacidad máxima (${MAX_DEST} clientes o ${MAX_VOL} m³)`, 'error');
     return false;
   }
 
   // Notificación informativa si cruza entre macrosectores
-  if (!isZoneCompatible(target, d)) {
+  if (!isZoneCompatible(targetStops, d)) {
     toast(`Aviso de zonificación: ${d.cliente} cruza sector hacia Ruta ${dest.id + 1}`, 'warn');
   }
 
-  active(from).splice(active(from).indexOf(d), 1);
-  target.push(d);
+  // 1. Eliminar estrictamente de TODAS las rutas (alternativas A y B) excepto la de destino
+  S.routes.forEach(r => {
+    if (r.id !== dest.id && r.alts) {
+      let changed = false;
+      if (Array.isArray(r.alts.a) && r.alts.a.some(s => s.id === id)) {
+        r.alts.a = r.alts.a.filter(s => s.id !== id);
+        changed = true;
+      }
+      if (Array.isArray(r.alts.b) && r.alts.b.some(s => s.id === id)) {
+        r.alts.b = r.alts.b.filter(s => s.id !== id);
+        changed = true;
+      }
+      if (changed) {
+        r.alts = alternatives(active(r));
+        delete r._osrmCache;
+      }
+    }
+  });
 
-  from.alts = alternatives(active(from));
-  from.option = from.alts.chosen;
-  delete from._osrmCache;
-
-  dest.alts = alternatives(target);
+  // 2. Agregar a la ruta destino de forma limpia y generar secuencias A y B
+  const newDestStops = [...targetStops, d];
+  dest.alts = alternatives(newDestStops);
   dest.option = dest.alts.chosen;
   delete dest._osrmCache;
+
+  // 3. Auditoría de desduplicación global
+  deduplicateFleetStops();
 
   S.currentRouteIndex = dest.id;
   renderRoutes();
@@ -6812,6 +6981,11 @@ if (btnViewAllMapBar) {
     }
     drawAllRoutes();
   };
+}
+
+const btnReplanGlobal = document.getElementById('btnReplanRoutes');
+if (btnReplanGlobal) {
+  btnReplanGlobal.onclick = () => replanRoutes();
 }
 
 // Inicialización de interfaces al cargar
