@@ -803,8 +803,9 @@ header > div,
   #resultsSec {
     display: flex !important;
     flex-direction: column !important;
-    height: calc(100vh - 105px) !important;
-    min-height: auto !important;
+    flex: 1 1 0% !important;
+    height: auto !important;
+    min-height: 0 !important;
     position: relative !important;
     overflow: hidden !important;
   }
@@ -823,6 +824,7 @@ header > div,
     display: flex !important; 
     width: 100% !important; 
     height: 100% !important; 
+    flex: 1 1 0% !important;
   }
 
   body[data-mobile-view="routes"] .jamar-map-col { 
@@ -835,6 +837,7 @@ header > div,
     display: flex !important; 
     width: 100% !important; 
     height: 100% !important; 
+    flex: 1 1 0% !important;
     border-right: none !important; 
   }
 
@@ -848,6 +851,7 @@ header > div,
     display: flex !important; 
     width: 100% !important; 
     height: 100% !important; 
+    flex: 1 1 0% !important;
     border-left: none !important; 
   }
 }
@@ -1082,12 +1086,18 @@ header > div,
     </div>
 
     <!-- Botón Principal: Cargar Archivo / Crear Ruta -->
-    <div class="p-3">
+    <div class="p-3 space-y-2">
       <label for="file" class="w-full flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-[#EA580C] hover:bg-[#C2410C] active:scale-[0.98] text-white font-bold text-xs cursor-pointer shadow-lg shadow-orange-950/40 transition">
         <svg class="w-4 h-4 text-orange-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
         <span>+ Crear Rutas (Excel)</span>
       </label>
       <input id="file" type="file" accept=".xlsx,.xls" class="sr-only" aria-label="Seleccionar archivo Excel">
+
+      <!-- Botón Demo en Móvil y Menú Lateral -->
+      <button id="btnLoadDemoDataSidebar" type="button" class="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-white/10 hover:bg-white/15 active:scale-[0.98] text-slate-200 hover:text-white font-semibold text-xs cursor-pointer border border-white/10 transition">
+        <svg class="w-3.5 h-3.5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+        <span>⚡ Cargar Demo en Vivo</span>
+      </button>
     </div>
 
     <!-- Navegación de Acciones Principales -->
@@ -1217,37 +1227,38 @@ header > div,
 
     <!-- Encabezado Superior Profesional -->
     <header class="h-[56px] shrink-0 bg-white dark:bg-[#0F172A] border-b border-slate-200 dark:border-slate-800 px-3 sm:px-6 flex items-center justify-between z-20">
-      <div class="flex items-center gap-2 sm:gap-4">
+      <div class="flex items-center gap-2 sm:gap-4 min-w-0">
         <!-- Botón Menú Lateral Móvil (Hamburguesa) -->
-        <button id="mobileSidebarToggleBtn" type="button" onclick="toggleMobileSidebar(true)" class="md:hidden p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer" aria-label="Abrir Menú">
+        <button id="mobileSidebarToggleBtn" type="button" onclick="toggleMobileSidebar(true)" class="md:hidden p-2 -ml-1 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer shrink-0" aria-label="Abrir Menú">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
         </button>
-        <div>
-          <h2 class="font-extrabold text-sm sm:text-base text-slate-900 dark:text-white leading-tight">Despacho de Rutas</h2>
-          <div class="flex items-center gap-2 text-[11px] text-slate-500 dark:text-slate-400 font-medium">
+        <div class="min-w-0">
+          <h2 class="font-extrabold text-sm sm:text-base text-slate-900 dark:text-white leading-tight truncate">Despacho de Rutas</h2>
+          <div class="flex items-center gap-1.5 sm:gap-2 text-[10px] sm:text-[11px] text-slate-500 dark:text-slate-400 font-medium truncate">
             <span>Cendis Siberia</span>
+            <span class="hidden sm:inline">•</span>
+            <span class="hidden sm:inline">Salida 07:30 AM</span>
             <span>•</span>
-            <span>Salida 07:30 AM</span>
-            <span>•</span>
-            <span id="activeMapBadge" class="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-bold">
+            <span id="activeMapBadge" class="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-bold shrink-0">
               <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-              <span id="activeMapBadgeText">Google Maps Activo</span>
+              <span id="activeMapBadgeText">Google Maps</span>
             </span>
           </div>
         </div>
       </div>
 
       <!-- Acciones de Encabezado -->
-      <div class="flex items-center gap-3">
-        <!-- Botón Demo Rápido -->
-        <button id="btnLoadDemoData" type="button" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold transition border border-slate-200 dark:border-slate-700 cursor-pointer shadow-xs">
+      <div class="flex items-center gap-2 sm:gap-3 shrink-0">
+        <!-- Botón Demo Rápido (Desktop / Tablet) -->
+        <button id="btnLoadDemoData" type="button" class="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold transition border border-slate-200 dark:border-slate-700 cursor-pointer shadow-xs">
           <span>⚡ Demo en Vivo</span>
         </button>
 
         <!-- Botón Cargar Archivo Rápido -->
-        <label for="file" class="inline-flex items-center gap-2 px-4 py-1.5 rounded-xl bg-[#EA580C] hover:bg-[#C2410C] text-white text-xs font-bold cursor-pointer shadow-md shadow-orange-600/20 transition">
-          <svg class="w-4 h-4 text-orange-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
-          <span>Cargar Archivo</span>
+        <label for="file" class="inline-flex items-center gap-1.5 px-3 sm:px-4 py-1.5 rounded-xl bg-[#EA580C] hover:bg-[#C2410C] active:scale-[0.98] text-white text-xs font-bold cursor-pointer shadow-md shadow-orange-600/20 transition">
+          <svg class="w-4 h-4 text-orange-200 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+          <span class="hidden sm:inline">Cargar Archivo</span>
+          <span class="sm:hidden">+ Excel</span>
         </label>
       </div>
     </header>
@@ -3718,6 +3729,7 @@ const fileEl = document.getElementById('file');
 if (fileEl) {
   fileEl.addEventListener('click', e => e.stopPropagation());
   fileEl.onchange = async e => {
+    toggleMobileSidebar(false);
     const f = e.target.files && e.target.files[0];
     if (!f) return;
     const welcomeArea = document.getElementById('welcomeUploadArea');
@@ -8265,6 +8277,10 @@ function loadDemoData() {
 
   generate();
 
+  if (window.innerWidth < 768) {
+    setMobileView('map');
+  }
+
   toast(`✨ Rutas generadas exitosamente con ${S.destinations.length} entregas de prueba`, 'success');
 }
 
@@ -8272,6 +8288,14 @@ function loadDemoData() {
 const demoBtn = document.getElementById('btnLoadDemoData');
 if (demoBtn) {
   demoBtn.onclick = loadDemoData;
+}
+
+const demoSidebarBtn = document.getElementById('btnLoadDemoDataSidebar');
+if (demoSidebarBtn) {
+  demoSidebarBtn.onclick = () => {
+    toggleMobileSidebar(false);
+    loadDemoData();
+  };
 }
 
 
@@ -8389,6 +8413,85 @@ function checkAuthStatus() {
     }
   }
 }
+
+// =========================================================================
+// GESTIÓN RESPONSIVA MÓVIL Y ESCRITORIO
+// =========================================================================
+
+function toggleMobileSidebar(open) {
+  const sidebar = document.getElementById('sidebarNav');
+  const backdrop = document.getElementById('sidebarBackdrop');
+  if (!sidebar) return;
+
+  const shouldOpen = (typeof open === 'boolean') ? open : sidebar.classList.contains('-translate-x-full');
+
+  if (shouldOpen) {
+    sidebar.classList.remove('-translate-x-full');
+    if (backdrop) backdrop.classList.remove('hidden');
+    document.body.classList.add('overflow-hidden');
+  } else {
+    sidebar.classList.add('-translate-x-full');
+    if (backdrop) backdrop.classList.add('hidden');
+    document.body.classList.remove('overflow-hidden');
+  }
+}
+
+function setMobileView(view) {
+  const targetView = (view === 'routes' || view === 'controls') ? view : 'map';
+  document.body.setAttribute('data-mobile-view', targetView);
+
+  const tabMap = document.getElementById('tabMobileMap');
+  const tabRoutes = document.getElementById('tabMobileRoutes');
+  const tabControls = document.getElementById('tabMobileControls');
+
+  const activeCls = ['bg-orange-500/10', 'text-orange-600', 'dark:text-orange-400', 'font-bold', 'border-b-2', 'border-orange-500'];
+  const inactiveCls = ['text-slate-600', 'dark:text-slate-400', 'font-semibold', 'hover:text-slate-900', 'dark:hover:text-white'];
+
+  const tabs = [
+    { el: tabMap, key: 'map' },
+    { el: tabRoutes, key: 'routes' },
+    { el: tabControls, key: 'controls' }
+  ];
+
+  tabs.forEach(({ el, key }) => {
+    if (!el) return;
+    if (key === targetView) {
+      el.classList.add(...activeCls);
+      inactiveCls.forEach(c => el.classList.remove(c));
+    } else {
+      activeCls.forEach(c => el.classList.remove(c));
+      el.classList.add(...inactiveCls);
+    }
+  });
+
+  // Re-ajustar mapa al cambiar a la pestaña de mapa para evitar tiles grises en Leaflet
+  if (targetView === 'map') {
+    setTimeout(() => {
+      if (S && S.map && typeof S.map.invalidateSize === 'function') {
+        S.map.invalidateSize();
+      } else if (window.map && typeof window.map.invalidateSize === 'function') {
+        window.map.invalidateSize();
+      }
+    }, 80);
+  }
+}
+
+window.toggleMobileSidebar = toggleMobileSidebar;
+window.setMobileView = setMobileView;
+
+// Sincronización de redimensionado de pantalla móvil <-> escritorio
+window.addEventListener('resize', () => {
+  if (window.innerWidth >= 768) {
+    toggleMobileSidebar(false);
+    if (S && S.map && typeof S.map.invalidateSize === 'function') {
+      S.map.invalidateSize();
+    }
+  } else {
+    if (!document.body.getAttribute('data-mobile-view')) {
+      setMobileView('map');
+    }
+  }
+});
 
 function showAppView(updateHistory = true) {
   const loginView = document.getElementById('loginView');
