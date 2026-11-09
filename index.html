@@ -1080,7 +1080,6 @@ header > div,
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
       </button>
     </div>
-    </div>
 
     <!-- Botón Principal: Cargar Archivo / Crear Ruta -->
     <div class="p-3">
@@ -8321,7 +8320,8 @@ async function handleLoginSubmit() {
   if (!userInput || !passInput) return;
 
   const enteredUser = userInput.value.trim();
-  const enteredPass = passInput.value.trim();
+  const rawPass = passInput.value;
+  const enteredPass = rawPass.trim();
 
   if (!enteredUser || !enteredPass) {
     if (errorBox && errorMsg) {
@@ -8331,30 +8331,41 @@ async function handleLoginSubmit() {
     return;
   }
 
-  const [uHash, uHashLower, pHash] = await Promise.all([
-    computeSha256(enteredUser),
-    computeSha256(enteredUser.toLowerCase()),
-    computeSha256(enteredPass)
-  ]);
+  try {
+    const [uHash, uHashLower, pHash, pHashRaw, pHashLower] = await Promise.all([
+      computeSha256(enteredUser),
+      computeSha256(enteredUser.toLowerCase()),
+      computeSha256(enteredPass),
+      computeSha256(rawPass),
+      computeSha256(enteredPass.toLowerCase())
+    ]);
 
-  const isValidUser = AUTH_CONFIG.VALID_USER_HASHES.includes(uHash) || 
-                      AUTH_CONFIG.VALID_USER_HASHES.includes(uHashLower);
-  const isValidPass = AUTH_CONFIG.VALID_PASS_HASHES.includes(pHash);
+    const isValidUser = AUTH_CONFIG.VALID_USER_HASHES.includes(uHash) || 
+                        AUTH_CONFIG.VALID_USER_HASHES.includes(uHashLower);
+    const isValidPass = AUTH_CONFIG.VALID_PASS_HASHES.includes(pHash) ||
+                        AUTH_CONFIG.VALID_PASS_HASHES.includes(pHashRaw) ||
+                        AUTH_CONFIG.VALID_PASS_HASHES.includes(pHashLower);
 
-  if (isValidUser && isValidPass) {
-    if (errorBox) errorBox.classList.add('hidden');
-    
-    // Sesión autorizada
-    sessionStorage.setItem('rutasjamar_auth_session', 'authenticated');
-    if (rememberCheck && rememberCheck.checked) {
-      localStorage.setItem('rutasjamar_auth_remember', 'authenticated');
+    if (isValidUser && isValidPass) {
+      if (errorBox) errorBox.classList.add('hidden');
+      
+      sessionStorage.setItem('rutasjamar_auth_session', 'authenticated');
+      if (rememberCheck && rememberCheck.checked) {
+        localStorage.setItem('rutasjamar_auth_remember', 'authenticated');
+      }
+
+      showAppView();
+      toast('Sesión iniciada correctamente. Bienvenido al Despacho Jamar.', 'success');
+    } else {
+      if (errorBox && errorMsg) {
+        errorMsg.textContent = 'Usuario o contraseña incorrectos. Verifique sus datos.';
+        errorBox.classList.remove('hidden');
+      }
     }
-
-    showAppView();
-    toast('Sesión iniciada correctamente. Bienvenido al Despacho Jamar.', 'success');
-  } else {
+  } catch (err) {
+    console.error('Error durante autenticación:', err);
     if (errorBox && errorMsg) {
-      errorMsg.textContent = 'Usuario o contraseña incorrectos. Verifique sus datos.';
+      errorMsg.textContent = 'Error al procesar credenciales. Intente nuevamente.';
       errorBox.classList.remove('hidden');
     }
   }
