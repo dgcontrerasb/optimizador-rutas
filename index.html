@@ -1,8 +1,20 @@
 <!doctype html>
-<html lang="es">
+<html lang="es" class="h-full dark">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<script>
+// PORTLINE Default Dark Theme Enforcer
+try {
+  if (localStorage.theme === 'light') {
+    document.documentElement.classList.remove('dark');
+  } else {
+    document.documentElement.classList.add('dark');
+  }
+} catch (e) {
+  document.documentElement.classList.add('dark');
+}
+</script>
 <title>RutasJamar · Planificador de Rutas Bogotá y Alrededores</title>
 <link rel="icon" type="image/png" href="/logo.png" />
 <meta name="description" content="Planificador logístico de rutas de entrega para Bogotá y municipios cercanos con consolidación de pedidos, optimización de recorridos y visualización en mapa." />
@@ -45,15 +57,28 @@ html, body {
   font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
 }
 
+html, body {
+  height: 100%;
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+  background-color: #080C14 !important;
+  color: #F8FAFC !important;
+}
+
 body {
-  background-color: #F0F2F5 !important;
-  color: #1E293B;
+  background-color: #080C14 !important;
+  color: #F8FAFC !important;
   -webkit-font-smoothing: antialiased;
 }
 
 .dark body {
-  background-color: #0F172A !important;
-  color: #F8FAFC;
+  background-color: #080C14 !important;
+  color: #F8FAFC !important;
+}
+
+html:not(.dark),
+html:not(.dark) body {
+  background-color: #F0F2F5 !important;
+  color: #1E293B !important;
 }
 
 /* Tarjetas y contenedores Fleetlog */
@@ -62,9 +87,9 @@ header {
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02) !important;
 }
 
-section.bg-white,
-section.bg-blue-50,
-.lg\:col-span-3 {
+html:not(.dark) section.bg-white,
+html:not(.dark) section.bg-blue-50,
+html:not(.dark) .lg\:col-span-3 {
   background-color: #FFFFFF !important;
   border-radius: 20px !important;
   border: 1px solid rgba(226, 232, 240, 0.8) !important;
@@ -72,10 +97,11 @@ section.bg-blue-50,
 }
 
 .dark section.bg-white,
-.dark .lg\:col-span-3 {
-  background-color: #1E293B !important;
+.dark .lg\:col-span-3,
+.dark .fleetlog-left-col {
+  background-color: #0F172A !important;
   border-color: rgba(51, 65, 85, 0.6) !important;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2) !important;
+  box-shadow: 0 4px 25px rgba(0, 0, 0, 0.4) !important;
 }
 
 /* Botones principales Fleetlog (Azul eléctrico #0B57D0) */
@@ -150,58 +176,109 @@ section.bg-blue-50,
    DISTRIBUCIÓN DE 2 COLUMNAS (FLEETLOG COCKPIT DASHBOARD LAYOUT)
    ========================================================================= */
 
+/* =========================================================================
+   DASHBOARD ENTERPRISE TMS (LAYOUT DE 4 COLUMNAS ESTILO PORTLINE / JAMAR)
+   ========================================================================= */
+
 #resultsSec {
-  height: calc(100vh - 105px) !important;
-  min-height: 520px !important;
+  height: calc(100vh - 56px) !important;
+  min-height: 500px !important;
+  display: grid !important;
+  grid-template-columns: 380px 1fr 270px !important;
+  gap: 0 !important;
+  width: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
 }
 
-@media (min-width: 1024px) {
-  #resultsSec > .grid,
-  #routesSection {
-    display: grid !important;
-    grid-template-columns: 380px 1fr !important;
-    gap: 1rem !important;
-    height: 100% !important;
-    align-items: stretch !important;
+@media (max-width: 1200px) {
+  #resultsSec {
+    grid-template-columns: 340px 1fr 240px !important;
   }
+}
 
-  .fleetlog-left-col,
-  #resultsSec .lg\:col-span-2 {
-    width: 380px !important;
-    max-width: 380px !important;
-    height: 100% !important;
-    display: flex !important;
-    flex-direction: column !important;
-  }
+.jamar-list-col {
+  width: 100% !important;
+  height: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+}
 
-  .fleetlog-map-col,
-  #resultsSec .lg\:col-span-3 {
-    flex: 1 1 0% !important;
-    min-width: 0 !important;
-    height: 100% !important;
-    display: flex !important;
-    flex-direction: column !important;
-    border-radius: 24px !important;
-    overflow: hidden !important;
-    position: relative !important;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04) !important;
-  }
+.jamar-map-col {
+  flex: 1 1 0% !important;
+  min-width: 0 !important;
+  height: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+  position: relative !important;
+}
 
-  #routes {
-    flex: 1 1 0% !important;
-    height: 100% !important;
-    max-height: none !important;
-    overflow-y: auto !important;
-    padding-right: 6px !important;
-  }
+.jamar-controls-col {
+  width: 100% !important;
+  height: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow-y: auto !important;
+}
 
-  #mapWrap {
-    height: 100% !important;
-    width: 100% !important;
-    min-height: 100% !important;
-    border-radius: 24px !important;
-    overflow: hidden !important;
-  }
+#mapWrap {
+  height: 100% !important;
+  width: 100% !important;
+  min-height: 100% !important;
+  border-radius: 0 !important;
+  overflow: hidden !important;
+  position: relative !important;
+}
+
+#routesSummaryList,
+#routes {
+  flex: 1 1 0% !important;
+  height: 100% !important;
+  max-height: none !important;
+  overflow-y: auto !important;
+}
+
+/* Tarjeta Resumen de Ruta (Pestaña RUTAS) */
+.route-summary-item {
+  padding: 0.875rem 1rem;
+  border-radius: 14px;
+  background-color: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  transition: all 0.18s ease;
+  cursor: pointer;
+}
+
+.dark .route-summary-item {
+  background-color: #162036;
+  border-color: rgba(51, 65, 85, 0.7);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+}
+
+.route-summary-item:hover {
+  border-color: #EA580C;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(234, 88, 12, 0.12);
+}
+
+.dark .route-summary-item:hover {
+  border-color: #F97316;
+  box-shadow: 0 4px 14px rgba(249, 115, 22, 0.2);
+}
+
+.route-summary-item.active-route {
+  border-color: #EA580C !important;
+  border-left-width: 4px !important;
+  background-color: #FFF7ED !important;
+}
+
+.dark .route-summary-item.active-route {
+  border-color: #F97316 !important;
+  border-left-width: 4px !important;
+  background-color: #1C2945 !important;
 }
 
 #mapWrap {
@@ -224,29 +301,40 @@ section.bg-blue-50,
 
 .route-card {
   padding: 1.125rem !important;
-  border-radius: 16px !important;
+  border-radius: 18px !important;
   background-color: #FFFFFF !important;
   border: 1px solid rgba(226, 232, 240, 0.9) !important;
-  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.02) !important;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.03) !important;
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.dark .route-card {
+  background-color: #111A2E !important;
+  border-color: rgba(148, 163, 184, 0.12) !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25) !important;
 }
 
 .route-card:hover {
   transform: translateY(-2px) !important;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06) !important;
-  border-color: rgba(11, 87, 208, 0.3) !important;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.08) !important;
+  border-color: rgba(59, 130, 246, 0.45) !important;
 }
 
-/* Estado de Ruta Activa / Seleccionada (Fondo carbón oscuro #1C1F26, texto blanco, badge verde) */
+.dark .route-card:hover {
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4) !important;
+  border-color: rgba(59, 130, 246, 0.5) !important;
+}
+
+/* Estado de Ruta Activa Portline (Gradiente Azul Medianoche profundo + Borde Neón Cobalto) */
 .route-card.border-brand-500,
 .route-card.ring-2,
 .route-card.active-fleetlog-card,
 .route-card[class*="border-brand-500"],
 .route-card[class*="ring-brand"] {
-  background-color: #1C1F26 !important;
+  background: linear-gradient(150deg, #152238 0%, #0F172A 100%) !important;
   color: #FFFFFF !important;
-  border-color: #2E3440 !important;
-  box-shadow: 0 10px 30px rgba(28, 31, 38, 0.35) !important;
+  border-color: #3B82F6 !important;
+  box-shadow: 0 12px 35px rgba(37, 99, 235, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
   transform: translateY(-1px) !important;
 }
 
@@ -357,18 +445,19 @@ section.bg-blue-50,
 div[role="group"]:has(#btnLayerRoadmap),
 .inline-flex[role="group"] {
   border-radius: 9999px !important;
-  background: rgba(255, 255, 255, 0.95) !important;
-  backdrop-filter: blur(10px) !important;
-  -webkit-backdrop-filter: blur(10px) !important;
+  background: rgba(255, 255, 255, 0.92) !important;
+  backdrop-filter: blur(14px) !important;
+  -webkit-backdrop-filter: blur(14px) !important;
   border: 1px solid rgba(203, 213, 225, 0.8) !important;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06) !important;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.08) !important;
   padding: 3px !important;
 }
 
 .dark div[role="group"]:has(#btnLayerRoadmap),
 .dark .inline-flex[role="group"] {
-  background: rgba(15, 23, 42, 0.9) !important;
-  border-color: rgba(51, 65, 85, 0.8) !important;
+  background: rgba(15, 23, 42, 0.88) !important;
+  border-color: rgba(148, 163, 184, 0.2) !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35) !important;
 }
 
 #btnLayerRoadmap,
@@ -424,8 +513,106 @@ div[role="group"]:has(#btnLayerRoadmap),
 
 /* Etiquetas e indicadores auxiliares */
 .drag-over { outline: 2px dashed #0B57D0; }
-.spinner { width: 28px; height: 28px; border: 3px solid #cbd5e1; border-top-color: #0B57D0; border-radius: 50%; animation: spin .8s linear infinite; }
-@keyframes spin { to { transform: rotate(360deg); } }
+/* Animación de Camión de Carga (Uiverse.io by vinodjangid07) */
+.loader {
+  width: fit-content;
+  height: fit-content;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.truckWrapper {
+  width: 200px;
+  height: 100px;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  align-items: center;
+  justify-content: flex-end;
+  overflow-x: hidden;
+}
+/* truck upper body */
+.truckBody {
+  width: 130px;
+  height: fit-content;
+  margin-bottom: 6px;
+  animation: truckMotion 1s linear infinite;
+}
+/* truck suspension animation*/
+@keyframes truckMotion {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(3px); }
+  100% { transform: translateY(0px); }
+}
+/* truck's tires */
+.truckTires {
+  width: 130px;
+  height: fit-content;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0px 10px 0px 15px;
+  position: absolute;
+  bottom: 0;
+}
+.truckTires svg {
+  width: 24px;
+}
+
+.road {
+  width: 100%;
+  height: 1.5px;
+  background-color: #282828;
+  position: relative;
+  bottom: 0;
+  align-self: flex-end;
+  border-radius: 3px;
+}
+.road::before {
+  content: "";
+  position: absolute;
+  width: 20px;
+  height: 100%;
+  background-color: #282828;
+  right: -50%;
+  border-radius: 3px;
+  animation: roadAnimation 1.4s linear infinite;
+  border-left: 10px solid white;
+}
+.road::after {
+  content: "";
+  position: absolute;
+  width: 10px;
+  height: 100%;
+  background-color: #282828;
+  right: -65%;
+  border-radius: 3px;
+  animation: roadAnimation 1.4s linear infinite;
+  border-left: 4px solid white;
+}
+
+.lampPost {
+  position: absolute;
+  bottom: 0;
+  right: -90%;
+  height: 90px;
+  animation: roadAnimation 1.4s linear infinite;
+}
+
+@keyframes roadAnimation {
+  0% { transform: translateX(0px); }
+  100% { transform: translateX(-350px); }
+}
+
+.dark .road,
+.dark .road::before,
+.dark .road::after {
+  background-color: #64748b;
+}
+.dark .lampPost {
+  fill: #94a3b8;
+}
 
 /* =========================================================================
    VENTANA MODAL DE AUDITORÍA (PROFUNDIDAD ESTRICTA Y DISEÑO MODERNO)
@@ -458,7 +645,7 @@ div[role="group"]:has(#btnLayerRoadmap),
 #auditModal > div,
 .audit-modal-card {
   z-index: 100000 !important;
-  max-width: 650px !important;
+  max-width: 760px !important;
   width: 90% !important;
   background: #FFFFFF !important;
   border-radius: 20px !important;
@@ -501,10 +688,13 @@ header > div,
   overflow: visible !important;
 }
 
-#exportMenu,
-.dropdown-menu {
-  position: absolute !important;
-  margin-top: 6px !important;
+#exportDropdown {
+  position: relative !important;
+}
+
+#exportMenu {
+  position: static !important;
+  margin-top: 4px !important;
 }
 
 /* =========================================================================
@@ -592,158 +782,665 @@ header > div,
   display: block;
   overflow: visible;
 }
+
+/* Indicador animado de recálculo de cubicaje de flota */
+@keyframes recalcShimmer {
+  0% { transform: translateX(-100%); width: 45%; }
+  50% { transform: translateX(80%); width: 70%; }
+  100% { transform: translateX(250%); width: 45%; }
+}
+.recalc-shimmer-bar {
+  animation: recalcShimmer 1.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
 </style>
 </head>
-<body class="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 min-h-full flex flex-col">
+<body class="bg-[#F8F9FA] dark:bg-[#0B0F19] text-slate-800 dark:text-slate-100 min-h-screen overflow-hidden antialiased select-none font-sans">
 
-<!-- Encabezado Principal Minimalista (~60px estilo Fleetlog, responsivo para móvil) -->
-<header class="sticky top-0 z-[999999] bg-white/95 dark:bg-slate-800/95 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-700 shadow-xs relative overflow-visible">
-  <div class="max-w-[1600px] mx-auto px-3 sm:px-4 py-2 md:py-0 md:h-15 flex flex-wrap md:flex-nowrap items-center justify-between gap-y-2 gap-x-2 relative overflow-visible">
-    <!-- Izquierda: Logo y Estado de Google Maps + Contador Real API -->
-    <div class="flex items-center gap-1.5 sm:gap-2.5 shrink-0 order-1">
-      <img src="/logo.png" alt="Rutas Jamar" class="h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 rounded-xl object-contain shadow-sm shrink-0" />
-      <div class="hidden sm:block">
-        <h1 class="font-bold text-sm leading-tight text-slate-900 dark:text-white">RutasJamar</h1>
-        <p class="text-[10px] text-slate-500 dark:text-slate-400 font-medium">TMS Flota Jamar</p>
+    <!-- =========================================================================
+       VISTA 1: PÁGINA DE LOGIN FULL-SCREEN SPLIT (50/50 DRIBBLE ENTERPRISE)
+       ========================================================================= -->
+  <div id="loginView" class="fixed inset-0 z-[9999999] min-h-screen w-full flex flex-col md:flex-row bg-white overflow-hidden select-none font-sans">
+    
+    <!-- =======================================================================
+         PANEL IZQUIERDO: 50% HERO / VISUAL BRAND (FOTO OFICIAL + TEXTO MINIMALISTA)
+         ======================================================================= -->
+    <div class="w-full md:w-1/2 h-full min-h-[500px] md:min-h-screen relative flex flex-col justify-between p-8 lg:p-12 text-white overflow-hidden bg-slate-900">
+      
+      <!-- Fondo: Imagen oficial del camión y contenedor Jamar -->
+      <img 
+        src="/jamar-login-bg.jpg" 
+        alt="Jamar Flota y Despacho" 
+        class="absolute inset-0 w-full h-full object-cover object-center pointer-events-none select-none" 
+      />
+
+      <!-- Overlay de contraste sutil (NO tapa ni oscurece los muebles ni el contenedor) -->
+      <div class="absolute inset-0 bg-gradient-to-r from-black/60 via-black/25 to-transparent pointer-events-none"></div>
+      <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/40 pointer-events-none"></div>
+
+      <!-- Header Superior: Logo + Subtítulo + Badge Operativo Flotante -->
+      <div class="relative z-10 flex flex-wrap items-center justify-between gap-4">
+        <!-- Logo e Identidad -->
+        <div class="flex items-center gap-3">
+          <img src="/logo.png" alt="Rutas Jamar" class="h-10 w-10 rounded-2xl object-contain shadow-lg shadow-black/30 bg-white/10 p-1 border border-white/20 shrink-0 backdrop-blur-sm" />
+          <div>
+            <h1 class="font-bold text-lg text-white tracking-tight leading-none drop-shadow">Rutas Jamar</h1>
+            <p class="text-xs text-orange-400 font-semibold tracking-wide mt-1 drop-shadow-sm">TMS Flota & Despacho</p>
+          </div>
+        </div>
+
+        <!-- Badge Flotante con punto verde: CENDIS SIBERIA -->
+        <span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-950/40 border border-emerald-500/30 text-emerald-400 text-xs font-semibold backdrop-blur-md shadow-xs">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          CENDIS SIBERIA • OPERACIÓN ACTIVA
+        </span>
       </div>
-      <div id="activeMapBadge" class="inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full border border-emerald-200 dark:border-emerald-800/80 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 text-[10px] sm:text-[11px] font-semibold shadow-2xs whitespace-nowrap">
-        <span class="text-[10px]">🟢</span>
-        <span id="activeMapBadgeText"><span class="hidden sm:inline">Google Maps </span>Activo</span>
+
+      <!-- Bloque Central de Contenido (¡SIN CAJAS NI RECUADROS PESADOS!) -->
+      <div class="relative z-10 my-auto py-8 max-w-lg space-y-6">
+        <div>
+          <h2 class="text-3xl lg:text-4xl font-bold text-white tracking-tight leading-tight drop-shadow-md">
+            Control inteligente de despacho y cubicaje elástico
+          </h2>
+          <p class="text-slate-200 text-sm max-w-md mt-2 leading-relaxed drop-shadow">
+            Optimización vial en tiempo real, consolidación de pedidos y ruteo OSRM para la Sabana de Occidente y Bogotá.
+          </p>
+        </div>
+
+        <!-- Puntos clave minimalistas (flotantes, solo icono redondeado translúcido + texto, sin tarjetas de fondo sólido) -->
+        <div class="space-y-4 pt-2">
+          <!-- Item 1: Optimización de rutas -->
+          <div class="flex items-center gap-3.5 group">
+            <div class="w-10 h-10 rounded-xl bg-orange-500/30 border border-orange-400/30 flex items-center justify-center text-orange-300 shrink-0 backdrop-blur-sm shadow-xs group-hover:scale-105 transition">
+              <!-- Lucide Icon: Route / Truck -->
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="6" cy="19" r="3"></circle><path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15"></path><circle cx="18" cy="5" r="3"></circle></svg>
+            </div>
+            <div>
+              <div class="font-semibold text-white text-sm drop-shadow">Optimización de rutas</div>
+              <div class="text-xs text-slate-200 leading-snug drop-shadow-sm">Planificación inteligente para entregas rápidas y eficientes.</div>
+            </div>
+          </div>
+
+          <!-- Item 2: Trazado Vial -->
+          <div class="flex items-center gap-3.5 group">
+            <div class="w-10 h-10 rounded-xl bg-blue-500/30 border border-blue-400/30 flex items-center justify-center text-blue-300 shrink-0 backdrop-blur-sm shadow-xs group-hover:scale-105 transition">
+              <!-- Lucide Icon: Navigation -->
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><polygon points="3 11 22 2 13 21 11 13 3 11" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></polygon></svg>
+            </div>
+            <div>
+              <div class="font-semibold text-white text-sm drop-shadow">Trazado Vial</div>
+              <div class="text-xs text-slate-200 leading-snug drop-shadow-sm">OSRM Deep Links & Geocodificación</div>
+            </div>
+          </div>
+        </div>
       </div>
-      <!-- Contador de Consultas Reales a la API de Google Maps (excluye caché) -->
-      <div id="apiUsageBadge" class="inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full border border-blue-200 dark:border-blue-800/80 bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 text-[10px] sm:text-[11px] font-semibold shadow-2xs whitespace-nowrap cursor-default" title="Llamadas reales efectuadas a la API de Google Maps hoy (excluye direcciones resueltas en caché local). Límite diario: 1.000">
-        <span class="text-[10px]">📡</span>
-        <span>API: <strong id="apiUsageCount">0</strong>/1.000</span>
+
+      <!-- Footer Inferior: Barra estilizada con texto discreto -->
+      <div class="relative z-10 backdrop-blur-sm bg-black/30 rounded-lg p-2.5 text-xs text-slate-300 flex flex-wrap items-center justify-between gap-2 border border-white/10">
+        <span>Acceso restringido para coordinadores de transporte Jamar</span>
+        <span class="text-slate-400">Cendis Siberia TMS © 2026</span>
+      </div>
+
+    </div>
+
+    <!-- =======================================================================
+         PANEL DERECHO: 50% AUTH FORM (FORMULARIO CLEAN DE ACCESO OPERATIVO)
+         ======================================================================= -->
+    <div class="w-full md:w-1/2 min-h-full flex items-center justify-center p-8 lg:p-16 bg-white">
+      
+      <div class="max-w-md w-full mx-auto space-y-6">
+        
+        <!-- Encabezado -->
+        <div class="space-y-1">
+          <h3 class="text-3xl font-bold text-slate-900 tracking-tight">
+            Iniciar Sesión
+          </h3>
+          <p class="text-sm text-slate-500 mt-1">
+            Ingresa tus credenciales para acceder a la consola de despacho
+          </p>
+        </div>
+
+        <!-- Formulario (EXCLUSIVAMENTE USUARIO Y CONTRASEÑA) -->
+        <form id="loginForm" onsubmit="event.preventDefault(); handleLoginSubmit();" class="space-y-5">
+          
+          <!-- Campo 1: USUARIO -->
+          <div class="space-y-1.5">
+            <label for="loginUserInput" class="block uppercase text-xs font-semibold text-slate-700 tracking-wide">
+              USUARIO
+            </label>
+            <div class="relative">
+              <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                <!-- Lucide Icon: User -->
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+              </span>
+              <input 
+                id="loginUserInput" 
+                type="text" 
+                name="username"
+                autocomplete="username" 
+                required 
+                placeholder="ej. coordinador.siberia" 
+                class="w-full pl-11 pr-4 py-3 rounded-xl border border-slate-200 focus:border-orange-500 focus:ring-4 focus:ring-orange-500/15 bg-slate-50/50 text-slate-900 placeholder-slate-400 text-sm font-medium transition outline-none"
+              >
+            </div>
+          </div>
+
+          <!-- Campo 2: CONTRASEÑA -->
+          <div class="space-y-1.5">
+            <label for="loginPassInput" class="block uppercase text-xs font-semibold text-slate-700 tracking-wide">
+              CONTRASEÑA
+            </label>
+            <div class="relative">
+              <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                <!-- Lucide Icon: Lock -->
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2" stroke-width="2"></rect><path d="M7 11V7a5 5 0 0110 0v4" stroke-width="2"></path></svg>
+              </span>
+              <input 
+                id="loginPassInput" 
+                type="password" 
+                name="password"
+                autocomplete="current-password" 
+                required 
+                placeholder="••••••••••••" 
+                class="w-full pl-11 pr-11 py-3 rounded-xl border border-slate-200 focus:border-orange-500 focus:ring-4 focus:ring-orange-500/15 bg-slate-50/50 text-slate-900 placeholder-slate-400 text-sm font-medium transition outline-none"
+              >
+              <!-- Botón Toggle para mostrar/ocultar contraseña (Eye / EyeOff) -->
+              <button 
+                id="loginTogglePassBtn" 
+                type="button" 
+                onclick="toggleLoginPassVisibility()" 
+                class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-700 transition cursor-pointer" 
+                title="Mostrar / Ocultar contraseña"
+                tabindex="-1"
+              >
+                <svg id="loginEyeIcon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- Checkbox: Mantener sesión activa -->
+          <div class="flex items-center justify-between pt-1">
+            <label class="inline-flex items-center gap-2 cursor-pointer text-slate-600 hover:text-slate-900 select-none text-xs font-medium">
+              <input 
+                id="loginRememberCheck" 
+                type="checkbox" 
+                checked 
+                class="rounded border-slate-300 text-orange-600 focus:ring-orange-500 h-4 w-4 cursor-pointer accent-orange-600"
+              >
+              <span>Mantener sesión activa en este equipo</span>
+            </label>
+          </div>
+
+          <!-- Mensaje de Error (oculto por defecto) -->
+          <div id="loginErrorBox" class="hidden p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold flex items-center gap-2.5 shadow-xs">
+            <svg class="w-4 h-4 text-rose-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+            <span id="loginErrorMsg">Usuario o contraseña incorrectos.</span>
+          </div>
+
+          <!-- Botón de acción: bg-orange-600 hover:bg-orange-700 w-full -->
+          <button 
+            id="loginSubmitBtn" 
+            type="submit" 
+            class="w-full bg-orange-600 hover:bg-orange-700 text-white font-medium py-3.5 rounded-xl shadow-lg shadow-orange-500/25 flex items-center justify-center gap-2 transition active:scale-[0.99] cursor-pointer"
+          >
+            <span>Ingresar al Despacho</span>
+            <!-- Lucide Icon: ArrowRight -->
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+          </button>
+        </form>
+
+        <!-- Pie del formulario: Indicador de seguridad centrado -->
+        <div class="pt-2 flex items-center justify-center gap-1.5 text-xs text-slate-400">
+          <!-- Lucide Icon: LockKeyhole -->
+          <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="16" r="1"></circle><rect x="3" y="11" width="18" height="11" rx="2" ry="2" stroke-width="2"></rect><path d="M7 11V7a5 5 0 0110 0v4" stroke-width="2"></path></svg>
+          <span>Conexión cifrada de extremo a extremo</span>
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- =========================================================================
+       VISTA 2: PANEL TMS PRINCIPAL (ENCAPSULADO EN #appView)
+       ========================================================================= -->
+  <div id="appView" class="h-screen w-screen overflow-hidden flex flex-row bg-[#F4F6F8] dark:bg-[#0B0F19] text-slate-800 dark:text-slate-100 font-sans hidden">
+
+  <!-- =========================================================================
+       COLUMNA 1: MENÚ LATERAL / BARRA LATERAL IZQUIERDA (CORPORATIVA OSCURA)
+       ========================================================================= -->
+  <aside id="sidebarNav" class="w-[230px] shrink-0 h-screen flex flex-col bg-[#111315] text-slate-300 border-r border-slate-800/80 z-30 select-none overflow-y-auto">
+    <!-- Logotipo y Nombre de Marca -->
+    <div class="px-4 py-3.5 border-b border-slate-800/70 flex items-center gap-3">
+      <img src="/logo.png" alt="Rutas Jamar" class="h-9 w-9 rounded-xl object-contain shadow-sm shrink-0 bg-white/5 p-0.5" />
+      <div>
+        <h1 class="font-extrabold text-sm text-white tracking-tight leading-none">Rutas Jamar</h1>
+        <p class="text-[10px] text-slate-400 font-medium tracking-wide mt-0.5">TMS Flota & Despacho</p>
       </div>
     </div>
 
-    <!-- Centro: Selector tipo píldora de distribución [ Modo Cómodo | Capacidad Máxima ] -->
-    <div class="w-full md:w-auto flex items-center justify-center order-3 md:order-2 py-0.5 md:py-0">
-      <div class="inline-flex rounded-full p-0.5 bg-slate-100 dark:bg-slate-700/60 border border-slate-200 dark:border-slate-700 shadow-2xs max-w-[340px] w-full sm:w-auto justify-center" role="group">
-        <button id="btnDistComfort" type="button" class="flex-1 sm:flex-none px-3 sm:px-3.5 py-1 rounded-full text-xs font-bold transition shadow-xs bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 cursor-pointer text-center whitespace-nowrap">
-          🌱 Modo Cómodo
-        </button>
-        <button id="btnDistMax" type="button" class="flex-1 sm:flex-none px-3 sm:px-3.5 py-1 rounded-full text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition cursor-pointer text-center whitespace-nowrap">
-          📦 Capacidad Máxima
-        </button>
-      </div>
-    </div>
-
-    <!-- Derecha: Retorno Siberia, Limpiar Caché, Menú Exportar y Modo Oscuro -->
-    <div class="flex items-center gap-1.5 shrink-0 order-2 md:order-3 ml-auto md:ml-0">
-      <!-- Retorno Siberia -->
-      <label class="hidden md:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs cursor-pointer shadow-2xs hover:bg-slate-50 transition" title="Activar retorno al depósito Cendis Siberia">
-        <input type="checkbox" id="returnDepot" class="rounded text-blue-600 focus:ring-blue-500 h-3.5 w-3.5 cursor-pointer">
-        <span class="text-slate-600 dark:text-slate-300 text-[11px] font-medium">Retorno</span>
+    <!-- Botón Principal: Cargar Archivo / Crear Ruta -->
+    <div class="p-3">
+      <label for="file" class="w-full flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-[#EA580C] hover:bg-[#C2410C] active:scale-[0.98] text-white font-bold text-xs cursor-pointer shadow-lg shadow-orange-950/40 transition">
+        <svg class="w-4 h-4 text-orange-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+        <span>+ Crear Rutas (Excel)</span>
       </label>
+      <input id="file" type="file" accept=".xlsx,.xls" class="sr-only" aria-label="Seleccionar archivo Excel">
+    </div>
 
-      <!-- Limpiar Caché -->
-      <button id="clearCacheBtn" type="button" class="p-1.5 px-2 sm:px-2.5 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs font-semibold shadow-2xs transition inline-flex items-center gap-1 cursor-pointer" title="Limpiar caché de direcciones">
-        <span>🗑️</span>
-        <span class="hidden lg:inline text-[11px]">Caché</span>
+    <!-- Navegación de Acciones Principales -->
+    <div class="px-3 py-1 space-y-1">
+      <div class="px-2 pb-1 text-[10px] font-bold uppercase tracking-wider text-slate-500">Operaciones</div>
+      
+      <!-- Ver Auditoría -->
+      <button id="toggleAuditBtn" type="button" onclick="document.getElementById('summarySec').classList.toggle('hidden'); if (typeof renderAuditSummary === 'function') renderAuditSummary();" class="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-slate-300 hover:text-white hover:bg-white/5 transition text-xs font-semibold cursor-pointer">
+        <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+        <span>Ver Auditoría</span>
       </button>
 
-      <!-- Menú agrupado de Exportación [ 📥 Exportar ▾ ] -->
-      <div id="exportDropdown" class="relative overflow-visible">
-        <button id="exportBtn" type="button" class="inline-flex items-center gap-1 px-2.5 sm:px-3 py-1.5 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold shadow-2xs transition cursor-pointer" title="Opciones de exportación de rutas">
-          <span>📥 Exportar</span>
-          <span class="text-[10px]">▾</span>
+      <!-- Limpiar Caché de Geocodificación -->
+      <button id="clearCacheBtn" type="button" class="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-slate-300 hover:text-white hover:bg-white/5 transition text-xs font-semibold cursor-pointer">
+        <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+        <span>Limpiar Caché</span>
+      </button>
+
+      <!-- Menú Desplegable de Exportación (Subconjunto en Flujo Normal) -->
+      <div id="exportDropdown" class="w-full space-y-1">
+        <button id="exportBtn" type="button" class="w-full flex items-center justify-between px-3 py-2 rounded-xl text-slate-300 hover:text-white hover:bg-white/5 transition text-xs font-semibold cursor-pointer">
+          <div class="flex items-center gap-3">
+            <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+            <span>Exportar Rutas</span>
+          </div>
+          <svg id="exportChevron" class="w-3.5 h-3.5 text-slate-500 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
         </button>
-        <div id="exportMenu" class="dropdown-menu absolute right-0 top-full mt-1.5 w-56 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-xl py-2 hidden z-[999999]">
-          <div class="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">Descargar Rutas</div>
-          <button id="xlsxFull" type="button" class="w-full text-left px-3 py-1.5 text-xs text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2 cursor-pointer">
-            <span>📗</span> Excel Completo (.xlsx)
+        <!-- Submenú acordeón que empuja hacia abajo naturalmente sin tapar nada -->
+        <div id="exportMenu" style="position: static !important;" class="hidden pl-4 pr-1 py-1.5 space-y-1 bg-white/5 rounded-xl border border-white/10 my-1">
+          <button id="xlsxFull" type="button" class="w-full text-left px-2.5 py-1.5 text-xs text-slate-300 hover:text-white hover:bg-white/10 rounded-lg flex items-center gap-2 cursor-pointer transition">
+            <span>📊</span> <span>Excel (.xlsx)</span>
           </button>
-          <button id="pdf" type="button" class="w-full text-left px-3 py-1.5 text-xs text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2 cursor-pointer">
-            <span>📑</span> PDF por Rutas
+          <button id="pdf" type="button" class="w-full text-left px-2.5 py-1.5 text-xs text-slate-300 hover:text-white hover:bg-white/10 rounded-lg flex items-center gap-2 cursor-pointer transition">
+            <span>📄</span> <span>PDF por Rutas</span>
           </button>
-          <button id="csvRoutes" type="button" class="w-full text-left px-3 py-1.5 text-xs text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2 cursor-pointer">
-            <span>📄</span> CSV por Rutas
+          <button id="csvRoutes" type="button" class="w-full text-left px-2.5 py-1.5 text-xs text-slate-300 hover:text-white hover:bg-white/10 rounded-lg flex items-center gap-2 cursor-pointer transition">
+            <span>📑</span> <span>CSV por Rutas</span>
           </button>
-          <button id="csvFull" type="button" class="w-full text-left px-3 py-1.5 text-xs text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2 cursor-pointer">
-            <span>📊</span> CSV Consolidado Completo
+          <button id="csvFull" type="button" class="w-full text-left px-2.5 py-1.5 text-xs text-slate-300 hover:text-white hover:bg-white/10 rounded-lg flex items-center gap-2 cursor-pointer transition">
+            <span>📁</span> <span>CSV Consolidado</span>
           </button>
-          <div class="my-1 border-t border-slate-100 dark:border-slate-700"></div>
-          <button id="downloadHtmlBtn" type="button" class="w-full text-left px-3 py-1.5 text-xs text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2 cursor-pointer">
-            <span>💾</span> Descargar Archivo HTML
+          <button id="downloadHtmlBtn" type="button" class="w-full text-left px-2.5 py-1.5 text-xs text-slate-300 hover:text-white hover:bg-white/10 rounded-lg flex items-center gap-2 cursor-pointer transition">
+            <span>🌐</span> <span>Copia HTML</span>
           </button>
         </div>
       </div>
 
-      <!-- Modo Oscuro -->
-      <button id="darkBtn" class="w-8 h-8 rounded-full border border-slate-200 dark:border-slate-700 flex items-center justify-center bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 transition cursor-pointer text-xs shrink-0" title="Alternar modo oscuro">
-        🌙
+      <!-- Cierre de Turno -->
+      <button id="closeShiftBtn" type="button" class="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-rose-400 hover:text-rose-300 hover:bg-rose-950/30 transition text-xs font-semibold cursor-pointer">
+        <svg class="w-4 h-4 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+        <span>Cierre de Turno</span>
+      </button>
+
+      <!-- Cerrar Sesión -->
+      <button id="logoutBtn" type="button" onclick="logoutSession()" class="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition text-xs font-semibold cursor-pointer">
+        <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"></path></svg>
+        <span>Cerrar Sesión</span>
       </button>
     </div>
+
+    <!-- Divisor -->
+    <div class="my-2 border-t border-slate-800/80"></div>
+
+    <!-- Panel de Métricas Operativas (KPIs Vivos) -->
+    <div class="px-3 py-2 flex-1 space-y-2">
+      <div class="px-2 pb-1 text-[10px] font-bold uppercase tracking-wider text-slate-500">Métricas del Turno</div>
+
+      <!-- Destinos Físicos -->
+      <div id="statDest" class="flex items-center justify-between px-3 py-2 rounded-xl bg-white/5 border border-white/5 text-xs">
+        <span class="text-slate-400 flex items-center gap-2">
+          <span class="w-2 h-2 rounded-full bg-blue-500"></span> Destinos Físicos
+        </span>
+        <span class="font-bold text-white"><div class="inline">0</div></span>
+      </div>
+
+      <!-- Pedidos Consolidados -->
+      <div id="statPedidos" class="flex items-center justify-between px-3 py-2 rounded-xl bg-white/5 border border-white/5 text-xs">
+        <span class="text-slate-400 flex items-center gap-2">
+          <span class="w-2 h-2 rounded-full bg-indigo-500"></span> Pedidos
+        </span>
+        <span class="font-bold text-white"><div class="inline">0</div></span>
+      </div>
+
+      <!-- Rutas Creadas -->
+      <div id="statR" class="flex items-center justify-between px-3 py-2 rounded-xl bg-white/5 border border-white/5 text-xs">
+        <span class="text-slate-400 flex items-center gap-2">
+          <span class="w-2 h-2 rounded-full bg-emerald-500"></span> Rutas
+        </span>
+        <span class="font-bold text-white"><div class="inline">0</div></span>
+      </div>
+
+      <!-- Exclusiones Operativas -->
+      <div id="statEx" class="flex items-center justify-between px-3 py-2 rounded-xl bg-white/5 border border-white/5 text-xs">
+        <span class="text-slate-400 flex items-center gap-2">
+          <span class="w-2 h-2 rounded-full bg-amber-500"></span> Exclusiones
+        </span>
+        <span class="font-bold text-white"><div class="inline">0</div></span>
+      </div>
+
+      <!-- Cuota Google Maps API -->
+      <div id="apiUsageBadge" class="flex items-center justify-between px-3 py-2 rounded-xl bg-white/5 border border-white/5 text-xs">
+        <span class="text-slate-400 flex items-center gap-2">
+          <span class="w-2 h-2 rounded-full bg-teal-500"></span> Google Maps API
+        </span>
+        <span class="font-bold text-teal-300 text-[11px]"><strong id="apiUsageCount">0</strong>/1.000</span>
+      </div>
+    </div>
+
+    <!-- Pie del Menú Lateral -->
+    <div class="p-3 border-t border-slate-800/80 space-y-2">
+      <div class="flex items-center justify-between text-xs px-2 text-slate-400">
+        <span class="text-[11px] font-medium">Modo Oscuro</span>
+        <button id="darkBtn" type="button" class="w-7 h-7 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center text-xs transition cursor-pointer" title="Alternar tema">
+          ☀️
+        </button>
+      </div>
+      <div class="text-[10px] text-slate-500 text-center">
+        Cendis Jamar Siberia · Salida 07:30
+      </div>
+    </div>
+  </aside>
+
+  <!-- =========================================================================
+       ÁREA PRINCIPAL DE TRABAJO (COLUMNAS 2, 3 Y 4 + ENCABEZADO SUPERIOR)
+       ========================================================================= -->
+  <div class="flex-1 h-screen flex flex-col min-w-0 overflow-hidden bg-slate-50 dark:bg-[#0B0F19]">
+
+    <!-- Encabezado Superior Profesional -->
+    <header class="h-[56px] shrink-0 bg-white dark:bg-[#0F172A] border-b border-slate-200 dark:border-slate-800 px-6 flex items-center justify-between z-20">
+      <div class="flex items-center gap-4">
+        <div>
+          <h2 class="font-extrabold text-base text-slate-900 dark:text-white leading-tight">Despacho de Rutas</h2>
+          <div class="flex items-center gap-2 text-[11px] text-slate-500 dark:text-slate-400 font-medium">
+            <span>Cendis Siberia</span>
+            <span>•</span>
+            <span>Salida 07:30 AM</span>
+            <span>•</span>
+            <span id="activeMapBadge" class="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-bold">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+              <span id="activeMapBadgeText">Google Maps Activo</span>
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Acciones de Encabezado -->
+      <div class="flex items-center gap-3">
+        <!-- Botón Demo Rápido -->
+        <button id="btnLoadDemoData" type="button" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold transition border border-slate-200 dark:border-slate-700 cursor-pointer shadow-xs">
+          <span>⚡ Demo en Vivo</span>
+        </button>
+
+        <!-- Botón Cargar Archivo Rápido -->
+        <label for="file" class="inline-flex items-center gap-2 px-4 py-1.5 rounded-xl bg-[#EA580C] hover:bg-[#C2410C] text-white text-xs font-bold cursor-pointer shadow-md shadow-orange-600/20 transition">
+          <svg class="w-4 h-4 text-orange-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+          <span>Cargar Archivo</span>
+        </label>
+      </div>
+    </header>
+
+    <!-- Contenedor Cockpit Grid (Columnas 2, 3 y 4) -->
+    <main id="resultsSec" class="flex-1 grid grid-cols-[380px_1fr_270px] h-[calc(100vh-56px)] min-h-0 overflow-hidden">
+
+      <!-- =========================================================================
+           COLUMNA 2: LISTA DE RUTAS Y CLIENTES CON 2 PESTAÑAS (RUTAS / DETALLES)
+           ========================================================================= -->
+      <section class="jamar-list-col flex flex-col h-full bg-white dark:bg-[#0F172A] border-r border-slate-200 dark:border-slate-800 overflow-hidden">
+        
+        <!-- Cabecera Rediseñada: [ RUTAS ] [ DETALLES ] con Espaciado Generoso y sin Solapamientos -->
+        <div class="border-b border-slate-200 dark:border-slate-800 px-3.5 py-2.5 shrink-0 bg-white dark:bg-[#0F172A]">
+          <div class="flex items-center justify-between gap-3 flex-nowrap">
+            <!-- Pestañas Segmentadas con Separación Nítida -->
+            <div class="flex items-center gap-1.5 p-1 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700">
+              <button id="tabRutasBtn" type="button" onclick="switchListTab('rutas')" class="px-3.5 py-1.5 rounded-lg text-xs font-black transition cursor-pointer bg-white dark:bg-[#162036] text-orange-600 dark:text-orange-400 shadow-sm border border-slate-200/80 dark:border-slate-700">
+                RUTAS
+              </button>
+              <button id="tabDetallesBtn" type="button" onclick="switchListTab('detalles')" class="px-3.5 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white">
+                DETALLES
+              </button>
+            </div>
+
+            <!-- Acciones Derecha -->
+            <div class="flex items-center gap-1.5 shrink-0">
+              <span id="routesCountBadge" class="px-2 py-1 rounded-lg text-[10px] font-bold bg-orange-50 text-orange-700 dark:bg-orange-950/60 dark:text-orange-300 border border-orange-200 dark:border-orange-800/80 hidden">
+                0/0 visibles
+              </span>
+              <!-- Replanear con Icono SVG -->
+              <button id="btnReplanRoutes" type="button" class="p-1.5 rounded-lg text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 transition cursor-pointer shadow-2xs" title="Replanear y re-zonificar rutas">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+              </button>
+              <!-- Ver Todas con Icono SVG de Mapa -->
+              <button id="btnViewAllRoutes" type="button" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 transition cursor-pointer shadow-2xs" title="Ver todas las rutas simultáneamente en el mapa">
+                <svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"></path></svg>
+                <span>Ver Todas</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Buscador de Clientes y Direcciones -->
+        <div class="px-3 py-2 border-b border-slate-100 dark:border-slate-800/80 shrink-0">
+          <div class="relative">
+            <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 text-xs">🔍</span>
+            <input id="clientSearchInput" type="text" placeholder="Buscar cliente, dirección o pedido..." class="w-full pl-8 pr-8 py-1.5 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/70 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500 transition">
+            <button id="clearClientSearchBtn" type="button" class="hidden absolute inset-y-0 right-0 pr-2.5 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-xs cursor-pointer">✕</button>
+          </div>
+          <div id="searchResultsCount" class="text-[11px] text-slate-500 dark:text-slate-400 mt-1 px-1 hidden"></div>
+        </div>
+
+        <!-- Contenido de Pestaña 1: Resumen de Rutas (Solo RUTA 1, RUTA 2...) -->
+        <div id="tabRutasContainer" class="flex-1 overflow-y-auto p-3 space-y-2.5">
+          <div id="routesSummaryList" class="space-y-2.5">
+            <p class="text-xs text-slate-400 text-center py-8">Cargue un archivo o active la demo para generar las rutas.</p>
+          </div>
+        </div>
+
+        <!-- Contenido de Pestaña 2: Detalles de Clientes de la Ruta Activa -->
+        <div id="tabDetallesContainer" class="hidden flex-1 overflow-y-auto p-3 space-y-2.5">
+          <div id="routes" class="space-y-3"></div>
+        </div>
+      </section>
+
+      <!-- =========================================================================
+           COLUMNA 3: EL MAPA LIMPIO CON TRANSICIÓN DEL VIDEO .WEBM
+           ========================================================================= -->
+      <section class="jamar-map-col flex flex-col h-full relative overflow-hidden bg-slate-100 dark:bg-[#080C14]">
+        <div id="mapWrap" class="w-full h-full relative overflow-hidden">
+          
+          <!-- Capa de Bienvenida con Animación de Camión Uiverse en Carretera -->
+          <div id="mapEmptyState" class="absolute inset-0 z-10 flex flex-col items-center justify-center p-6 text-center bg-white/95 dark:bg-[#0B0F19]/95 backdrop-blur-md transition-opacity duration-700">
+            <div class="max-w-md w-full flex flex-col items-center space-y-4">
+              
+              <!-- Animación Camión Uiverse.io by vinodjangid07 -->
+              <div class="p-6 rounded-3xl bg-slate-50 dark:bg-[#111A2E]/80 border border-slate-200/80 dark:border-slate-800 shadow-xl flex items-center justify-center overflow-hidden">
+                <div class="loader">
+                  <div class="truckWrapper">
+                    <div class="truckBody">
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 198 93" class="trucksvg">
+                        <path stroke-width="3" stroke="#282828" fill="#EA580C" d="M135 22.5H177.264C178.295 22.5 179.22 23.133 179.594 24.0939L192.33 56.8443C192.442 57.1332 192.5 57.4404 192.5 57.7504V89C192.5 90.3807 191.381 91.5 190 91.5H135C133.619 91.5 132.5 90.3807 132.5 89V25C132.5 23.6193 133.619 22.5 135 22.5Z"></path>
+                        <path stroke-width="3" stroke="#282828" fill="#7D7C7C" d="M146 33.5H181.741C182.779 33.5 183.709 34.1415 184.078 35.112L190.538 52.112C191.16 53.748 189.951 55.5 188.201 55.5H146C144.619 55.5 143.5 54.3807 143.5 53V36C143.5 34.6193 144.619 33.5 146 33.5Z"></path>
+                        <path stroke-width="2" stroke="#282828" fill="#282828" d="M150 65C150 65.39 149.763 65.8656 149.127 66.2893C148.499 66.7083 147.573 67 146.5 67C145.427 67 144.501 66.7083 143.873 66.2893C143.237 65.8656 143 65.39 143 65C143 64.61 143.237 64.1344 143.873 63.7107C144.501 63.2917 145.427 63 146.5 63C147.573 63 148.499 63.2917 149.127 63.7107C149.763 64.1344 150 64.61 150 65Z"></path>
+                        <rect stroke-width="2" stroke="#282828" fill="#FFFCAB" rx="1" height="7" width="5" y="63" x="187"></rect>
+                        <rect stroke-width="2" stroke="#282828" fill="#282828" rx="1" height="11" width="4" y="81" x="193"></rect>
+                        <rect stroke-width="3" stroke="#282828" fill="#DFDFDF" rx="2.5" height="90" width="121" y="1.5" x="6.5"></rect>
+                        <rect stroke-width="2" stroke="#282828" fill="#DFDFDF" rx="2" height="4" width="6" y="84" x="1"></rect>
+                      </svg>
+                    </div>
+                    <div class="truckTires">
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 30 30" class="tiresvg">
+                        <circle stroke-width="3" stroke="#282828" fill="#282828" r="13.5" cy="15" cx="15"></circle>
+                        <circle fill="#DFDFDF" r="7" cy="15" cx="15"></circle>
+                      </svg>
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 30 30" class="tiresvg">
+                        <circle stroke-width="3" stroke="#282828" fill="#282828" r="13.5" cy="15" cx="15"></circle>
+                        <circle fill="#DFDFDF" r="7" cy="15" cx="15"></circle>
+                      </svg>
+                    </div>
+                    <div class="road"></div>
+                    <svg xml:space="preserve" viewBox="0 0 453.459 453.459" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns="http://www.w3.org/2000/svg" id="Capa_1" version="1.1" fill="#000000" class="lampPost">
+                      <path d="M252.882,0c-37.781,0-68.686,29.953-70.245,67.358h-6.917v8.954c-26.109,2.163-45.463,10.011-45.463,19.366h9.993c-1.65,5.146-2.507,10.54-2.507,16.017c0,28.956,23.558,52.514,52.514,52.514c28.956,0,52.514-23.558,52.514-52.514c0-5.478-0.856-10.872-2.506-16.017h9.992c0-9.354-19.352-17.204-45.463-19.366v-8.954h-6.149C200.189,38.779,223.924,16,252.882,16c29.952,0,54.32,24.368,54.32,54.32c0,28.774-11.078,37.009-25.105,47.437c-17.444,12.968-37.216,27.667-37.216,78.884v113.914h-0.797c-5.068,0-9.174,4.108-9.174,9.177c0,2.844,1.293,5.383,3.321,7.066c-3.432,27.933-26.851,95.744-8.226,115.459v11.202h45.75v-11.202c18.625-19.715-4.794-87.527-8.227-115.459c2.029-1.683,3.322-4.223,3.322-7.066c0-5.068-4.107-9.177-9.176-9.177h-0.795V196.641c0-43.174,14.942-54.283,30.762-66.043c14.793-10.997,31.559-23.461,31.559-60.277C323.202,31.545,291.656,0,252.882,0z M232.77,111.694c0,23.442-19.071,42.514-42.514,42.514c-23.442,0-42.514-19.072-42.514-42.514c0-5.531,1.078-10.957,3.141-16.017h78.747C231.693,100.736,232.77,106.162,232.77,111.694z"></path>
+                    </svg>
+                  </div>
+                </div>
+              </div>
+
+              <div class="space-y-1">
+                <h3 class="text-base font-bold text-slate-900 dark:text-white">Planificador Listo para Despacho</h3>
+                <p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed max-w-sm mx-auto">
+                  Cargue el archivo de despachos consolidado para optimizar recorridos viales y balancear cargas.
+                </p>
+              </div>
+
+              <div class="pt-1 flex items-center gap-2.5">
+                <label for="file" class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#EA580C] hover:bg-[#C2410C] active:scale-95 text-white font-semibold text-xs cursor-pointer shadow-md shadow-orange-600/30 transition">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                  <span>Cargar Archivo Excel</span>
+                </label>
+                <button id="btnLoadDemoFromMap" type="button" onclick="loadDemoData()" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-semibold text-xs transition border border-slate-200 dark:border-slate-700 cursor-pointer shadow-xs">
+                  <span>⚡ Ver Demo en Vivo</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Contenedor del Mapa Leaflet (100% LIMPIO, SIN ELEMENTOS ENCIMA) -->
+          <div id="map" class="w-full h-full"></div>
+        </div>
+      </section>
+
+      <!-- =========================================================================
+           COLUMNA 4: PANEL DERECHO COMPACTO (AJUSTES, HERRAMIENTAS Y FLOTA - SIN SCROLL)
+           ========================================================================= -->
+      <aside class="jamar-controls-col flex flex-col h-full bg-white dark:bg-[#0F172A] border-l border-slate-200 dark:border-slate-800 p-3 space-y-2 select-none overflow-hidden text-xs">
+        
+        <!-- Cabecera Compacta -->
+        <div class="flex items-center justify-between pb-1.5 border-b border-slate-100 dark:border-slate-800">
+          <h3 class="text-[11px] font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-400">Control de Mapa & Flota</h3>
+          <span class="text-[10px] px-1.5 py-0.5 rounded bg-orange-50 text-orange-600 dark:bg-orange-950/60 dark:text-orange-400 font-bold border border-orange-200 dark:border-orange-800/80">TMS</span>
+        </div>
+
+        <!-- 1. Tamaño de Marcadores (Pills Segmentadas Naranja) -->
+        <div class="space-y-1">
+          <div class="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Marcadores</div>
+          <div class="grid grid-cols-2 p-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-[11px]">
+            <button id="btnPinSizeMicro" type="button" class="py-1 px-2 rounded-md font-bold transition cursor-pointer text-center bg-[#EA580C] text-white shadow-xs">
+              Micro 16px
+            </button>
+            <button id="btnPinSizeStandard" type="button" class="py-1 px-2 rounded-md font-medium transition cursor-pointer text-center text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white">
+              Estándar
+            </button>
+          </div>
+        </div>
+
+        <!-- 2. Trazado de Rutas -->
+        <div class="space-y-1">
+          <div class="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Trazado Vial</div>
+          <div class="grid grid-cols-2 p-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-[11px]">
+            <button id="btnViewStyleFull" type="button" class="py-1 px-2 rounded-md font-bold transition cursor-pointer text-center bg-[#EA580C] text-white shadow-xs">
+              Rutas Completas
+            </button>
+            <button id="btnViewStylePins" type="button" class="py-1 px-2 rounded-md font-medium transition cursor-pointer text-center text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white">
+              Solo Pines
+            </button>
+          </div>
+        </div>
+
+        <!-- 3. Capa Cartográfica -->
+        <div class="space-y-1">
+          <div class="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Capa de Mapa</div>
+          <div class="grid grid-cols-2 p-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-[11px]">
+            <button id="btnLayerRoadmap" type="button" class="py-1 px-2 rounded-md font-bold transition cursor-pointer text-center bg-[#EA580C] text-white shadow-xs">
+              Callejero
+            </button>
+            <button id="btnLayerSatellite" type="button" class="py-1 px-2 rounded-md font-medium transition cursor-pointer text-center text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white">
+              Satélite
+            </button>
+          </div>
+        </div>
+
+        <!-- 4. Parámetros de Capacidad -->
+        <div class="space-y-1">
+          <div class="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Cubicaje de Flota</div>
+          <div class="grid grid-cols-2 p-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-[11px]">
+            <button id="btnDistComfort" type="button" class="py-1 px-2 rounded-md font-bold transition cursor-pointer text-center bg-[#EA580C] text-white shadow-xs">
+              Cómodo (11-14m³)
+            </button>
+            <button id="btnDistMax" type="button" class="py-1 px-2 rounded-md font-medium transition cursor-pointer text-center text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white">
+              Máx (18m³)
+            </button>
+          </div>
+          <label class="flex items-center gap-2 p-1.5 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 text-[11px] cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+            <input type="checkbox" id="returnDepot" class="rounded text-orange-600 focus:ring-orange-500 h-3 w-3 cursor-pointer">
+            <span class="text-slate-700 dark:text-slate-200 font-medium">Retorno Cendis Siberia (07:30)</span>
+          </label>
+        </div>
+
+        <!-- 5. Herramientas y Acciones de Mapa -->
+        <div class="space-y-1.5 pt-0.5">
+          <div class="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Acciones de Mapa</div>
+          
+          <!-- Centrar Todas las Rutas (Rediseñado con Icono SVG Diana, SIN EMOJI DE OJO) -->
+          <button id="btnViewAllRoutesMapBar" type="button" class="w-full flex items-center justify-center gap-2 py-1.5 px-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold shadow-2xs transition cursor-pointer" title="Centrar el mapa para abarcar todas las rutas generadas">
+            <svg class="w-3.5 h-3.5 text-orange-600 dark:text-orange-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10" stroke-width="2"/><circle cx="12" cy="12" r="3" stroke-width="2"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2v3m0 14v3M2 12h3m14 0h3"/></svg>
+            <span>Centrar Todas las Rutas</span>
+          </button>
+
+          <div class="grid grid-cols-2 gap-1.5">
+            <button id="btnDownloadMapPng" type="button" class="flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-[11px] font-semibold shadow-2xs transition cursor-pointer" title="Descargar PNG del mapa">
+              <svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+              <span>Mapa PNG</span>
+            </button>
+
+            <button id="btnToggleFullscreen" type="button" class="flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-[11px] font-semibold shadow-2xs transition cursor-pointer" title="Pantalla Completa">
+              <span id="fullscreenIcon">⛶</span> <span id="fullscreenText">Completa</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 6. Información Fija Cendis Siberia (Pie Compacto) -->
+        <div class="mt-auto pt-2 border-t border-slate-100 dark:border-slate-800 text-[10px] text-slate-500 dark:text-slate-400 flex items-center justify-between">
+          <span class="font-bold text-slate-700 dark:text-slate-300">Cendis Siberia 07:30</span>
+          <span class="font-mono text-emerald-600 dark:text-emerald-400 font-semibold">11.0–14.0 m³</span>
+        </div>
+      </aside>
+
+    </main>
   </div>
-</header>
 
-<!-- Barra de KPIs Compacta (Píldoras Informativas en una sola línea horizontal) -->
-<div class="bg-white/90 dark:bg-slate-800/90 border-b border-slate-200/80 dark:border-slate-700/80 px-3 sm:px-4 py-1.5 sm:py-2 backdrop-blur-md flex items-center justify-between gap-1.5 sm:gap-2 flex-wrap shadow-2xs">
-  <div class="flex items-center gap-1.5 sm:gap-2 flex-wrap">
-    <!-- 📦 Pedidos -->
-    <div id="statPedidos" class="inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-700/60 border border-slate-200 dark:border-slate-700 text-[11px] sm:text-xs">
-      <span>📦</span>
-      <span class="font-bold text-slate-800 dark:text-slate-100 flex items-center"><div>0</div></span>
-      <span class="text-[10px] sm:text-[11px] text-slate-500 dark:text-slate-400 font-medium">Pedidos</span>
-    </div>
-
-    <!-- 📍 Destinos Físicos -->
-    <div id="statDest" class="inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-700/60 border border-slate-200 dark:border-slate-700 text-[11px] sm:text-xs">
-      <span>📍</span>
-      <span class="font-bold text-blue-600 dark:text-blue-400 flex items-center"><div>0</div></span>
-      <span class="text-[10px] sm:text-[11px] text-slate-500 dark:text-slate-400 font-medium">Destinos<span class="hidden sm:inline"> Físicos</span></span>
-    </div>
-
-    <!-- 🚛 Rutas -->
-    <div id="statR" class="inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-700/60 border border-slate-200 dark:border-slate-700 text-[11px] sm:text-xs">
-      <span>🚛</span>
-      <span class="font-bold text-emerald-600 dark:text-emerald-400 flex items-center"><div>0</div></span>
-      <span class="text-[10px] sm:text-[11px] text-slate-500 dark:text-slate-400 font-medium">Rutas</span>
-    </div>
-
-    <!-- ⚠️ Exclusiones -->
-    <div id="statEx" class="inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-700/60 border border-slate-200 dark:border-slate-700 text-[11px] sm:text-xs">
-      <span>⚠️</span>
-      <span class="font-bold text-amber-600 dark:text-amber-400 flex items-center"><div>0</div></span>
-      <span class="text-[10px] sm:text-[11px] text-slate-500 dark:text-slate-400 font-medium">Exclusiones</span>
-    </div>
-
-    <!-- Botón discreto al lado de exclusiones: "Ver Auditoría ▾" -->
-    <button id="toggleAuditBtn" type="button" onclick="document.getElementById('summarySec').classList.toggle('hidden')" class="inline-flex items-center gap-1 px-2.5 sm:px-3 py-1 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 text-[11px] sm:text-xs font-semibold border border-slate-200 dark:border-slate-600 transition cursor-pointer shadow-2xs whitespace-nowrap" title="Ver detalle de auditoría del preprocesamiento">
-      <span><span class="hidden sm:inline">Ver </span>Auditoría</span>
-      <span class="text-[10px]">▾</span>
-    </button>
+  <!-- Compatibilidad JS Estricta y Elementos Ocultos Necesarios -->
   </div>
 
-  <!-- Alertas si existen (oculto por defecto) -->
-  <div id="statAl" class="hidden items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-full bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700 text-amber-800 dark:text-amber-300 text-xs">
-    <span>🔔</span>
-    <span class="font-bold flex items-center"><div>0</div></span>
-    <span class="text-[11px]">Por verificar</span>
+  <div class="hidden">
+    <div id="welcomeUploadArea"></div>
+    <span id="activeRouteLabel">Ruta 1</span>
+    <span id="mapTitle">Rutas Jamar</span>
+    <span id="distModeBadge"></span>
+    <span id="distModeExplanation"></span>
+    <span id="headerRouteTargetText"></span>
+    <span id="statVolTarget"></span>
+    <span id="statDestTarget"></span>
+    <span id="labelStatVol"></span>
+    <span id="labelStatDest"></span>
+    <button id="modeRouteBtn" type="button"></button>
+    <button id="modeNormalizeBtn" type="button"></button>
+    <div id="panelRouteMode"></div>
+    <div id="panelNormalizeMode"></div>
+    <input id="fastNormalizeFile" type="file">
+    <div id="fastNormalizeResults"></div>
+    <button id="downloadFastExcelBtn" type="button"></button>
+    <div id="fastNormalizeStats"></div>
+    <table><tbody id="fastNormalizePreviewTable"></tbody></table>
+    <button id="btnDownloadMapPngHeader" type="button"></button>
+    <div id="statAl"><div>0</div></div>
   </div>
-</div>
 
-<!-- Elementos invisibles de compatibilidad JS estricta -->
-<div class="hidden">
-  <span id="distModeBadge"></span>
-  <span id="distModeExplanation"></span>
-  <span id="headerRouteTargetText"></span>
-  <span id="statVolTarget"></span>
-  <span id="statDestTarget"></span>
-  <span id="labelStatVol"></span>
-  <span id="labelStatDest"></span>
-  <button id="modeRouteBtn" type="button"></button>
-  <button id="modeNormalizeBtn" type="button"></button>
-  <div id="panelRouteMode"></div>
-  <div id="panelNormalizeMode"></div>
-  <input id="fastNormalizeFile" type="file">
-  <div id="fastNormalizeResults"></div>
-  <button id="downloadFastExcelBtn" type="button"></button>
-  <div id="fastNormalizeStats"></div>
-  <table><tbody id="fastNormalizePreviewTable"></tbody></table>
-  <button id="btnDownloadMapPngHeader" type="button"></button>
-</div>
 
 <!-- Auditoría en Panel Flotante / Modal (Oculto por defecto, solo se abre con "Ver Auditoría ▾") -->
 <div id="summarySec" class="hidden modal-backdrop audit-modal" onclick="if(event.target === this) this.classList.add('hidden')">
@@ -751,7 +1448,7 @@ header > div,
     <div class="flex justify-between items-center pb-3 border-b border-slate-100 dark:border-slate-700">
       <div class="flex items-center gap-2">
         <span class="text-lg">📊</span>
-        <h3 class="font-bold text-sm uppercase tracking-wider text-slate-800 dark:text-slate-100">Auditoría del Preprocesamiento</h3>
+        <h3 class="font-bold text-sm uppercase tracking-wider text-slate-800 dark:text-slate-100">Auditoría Operativa y de Flota</h3>
       </div>
       <button type="button" onclick="document.getElementById('summarySec').classList.add('hidden')" class="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 text-base font-bold cursor-pointer transition" title="Cerrar ventana">
         ✕
@@ -763,17 +1460,61 @@ header > div,
   </div>
 </div>
 
-<!-- Barra de Progreso de Geocodificación -->
-<section id="progressSec" class="hidden max-w-2xl mx-auto my-6 px-4">
-  <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-4 shadow-sm flex items-center gap-4">
-    <div class="spinner"></div>
-    <div class="flex-1">
-      <div class="flex justify-between items-center text-xs font-semibold">
-        <p id="progressText" class="text-slate-700 dark:text-slate-200">Localizando direcciones con Google Maps...</p>
-        <span class="text-blue-600 dark:text-blue-400"><span id="progressNow">0</span> / <span id="progressTotal">0</span></span>
+<!-- Barra de Progreso de Geocodificación con Animación de Camión -->
+<!-- Barra de Progreso de Geocodificación (Modal Flotante Centrado en Pantalla) -->
+<!-- Modal / Indicador de Recálculo de Cubicaje de Flota (Cómodo vs Máximo) -->
+<div id="recalcModal" class="hidden fixed inset-0 z-[999999] bg-black/60 backdrop-blur-md flex items-center justify-center p-4 transition-opacity duration-200 opacity-0 pointer-events-none select-none">
+  <div class="bg-white dark:bg-[#111A2E] rounded-3xl border border-slate-200 dark:border-slate-800 p-6 sm:p-8 shadow-2xl max-w-sm w-full flex flex-col items-center text-center space-y-4">
+    
+    <!-- Animación Central: Anillo giratorio con camión pulsante Jamar -->
+    <div class="relative w-16 h-16 flex items-center justify-center my-1">
+      <div class="absolute inset-0 rounded-full border-4 border-orange-500/20 border-t-orange-600 animate-spin"></div>
+      <div class="w-11 h-11 rounded-2xl bg-orange-500/10 dark:bg-orange-500/20 flex items-center justify-center text-orange-600 dark:text-orange-400">
+        <!-- Lucide Truck Icon -->
+        <svg class="w-6 h-6 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="1" y="3" width="15" height="13" rx="2" stroke-width="2"></rect><polygon points="16 8 20 8 23 11 23 16 16 16 16 8" stroke-width="2"></polygon><circle cx="5.5" cy="18.5" r="2.5" stroke-width="2"></circle><circle cx="18.5" cy="18.5" r="2.5" stroke-width="2"></circle></svg>
       </div>
-      <div class="h-2 bg-slate-100 dark:bg-slate-700 rounded-full mt-2 overflow-hidden">
-        <div id="progressBar" class="h-full bg-blue-600 rounded-full transition-all duration-200" style="width:0%"></div>
+    </div>
+
+    <!-- Título y Badge del Modo Seleccionado -->
+    <div class="space-y-1.5 w-full">
+      <h3 class="text-base font-bold text-slate-900 dark:text-white tracking-tight">
+        Recalculando Cubicaje de Flota
+      </h3>
+      <div id="recalcModalBadge" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-orange-500/10 text-orange-600 dark:text-orange-400 border border-orange-500/20">
+        <span class="w-1.5 h-1.5 rounded-full bg-orange-500 animate-ping"></span>
+        <span id="recalcModalModeText">Modo Cómodo (11–14 m³)</span>
+      </div>
+    </div>
+
+    <!-- Mensaje explicativo de la operación -->
+    <p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed max-w-xs">
+      Rezonificando clientes, redistribuyendo capacidad de camiones y recalculando el trazado vial en tiempo real...
+    </p>
+
+    <!-- Barra de Progreso Fluida (Indeterminate Shimmer Bar) -->
+    <div class="w-full h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden relative border border-slate-200/80 dark:border-slate-700/80 shadow-inner">
+      <div class="recalc-shimmer-bar h-full bg-gradient-to-r from-orange-600 via-amber-400 to-orange-600 rounded-full shadow-xs"></div>
+    </div>
+
+  </div>
+</div>
+
+<section id="progressSec" class="hidden fixed inset-0 z-[999999] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+  <div class="bg-white dark:bg-[#111A2E] rounded-3xl border border-slate-200 dark:border-slate-800 p-6 sm:p-8 shadow-2xl max-w-md w-full flex flex-col items-center justify-center space-y-4">
+    <!-- Indicadores de avance -->
+    <div class="w-full space-y-2.5">
+      <div class="flex justify-between items-center text-xs font-semibold">
+        <p id="progressText" class="text-slate-700 dark:text-slate-200 flex items-center gap-2">
+          <span class="w-2 h-2 rounded-full bg-orange-500 animate-ping"></span>
+          <span>Localizando destinos y trazando rutas...</span>
+        </p>
+        <div class="flex items-center gap-1.5 font-mono">
+          <span id="progressPercent" class="font-bold text-orange-600 dark:text-orange-400">0%</span>
+          <span class="text-slate-400 text-[11px]">(<span id="progressNow">0</span>/<span id="progressTotal">0</span>)</span>
+        </div>
+      </div>
+      <div class="h-2.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden p-0.5 border border-slate-200 dark:border-slate-700 shadow-inner">
+        <div id="progressBar" class="h-full bg-gradient-to-r from-orange-500 to-amber-500 rounded-full transition-all duration-200 shadow-xs" style="width:0%"></div>
       </div>
     </div>
   </div>
@@ -810,136 +1551,7 @@ header > div,
   </div>
 </section>
 
-<!-- Contenido Principal: Cockpit Grid estilo Fleetlog -->
-<main class="w-full flex-1 flex flex-col min-h-0">
-  <!-- Área Central de Bienvenida y Carga -->
-  <div id="welcomeUploadArea" class="flex-1 flex flex-col items-center justify-center p-6 text-center my-auto min-h-[460px]">
-    <div class="max-w-md w-full p-8 sm:p-10 rounded-3xl bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 shadow-xl space-y-6">
-      <div class="w-20 h-20 mx-auto rounded-3xl bg-blue-50 dark:bg-blue-950/60 border border-blue-100 dark:border-blue-800 flex items-center justify-center text-4xl shadow-sm">
-        🚚
-      </div>
-      <div class="space-y-2">
-        <h2 class="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Planificador Logístico Fleetlog</h2>
-        <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
-          Carga el archivo de pedidos consolidado para geocodificar destinos, optimizar capacidades y generar rutas de flota.
-        </p>
-      </div>
-      <div>
-        <label for="file" class="w-full inline-flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-2xl bg-blue-600 hover:bg-blue-700 active:scale-[0.99] text-white font-semibold text-sm cursor-pointer shadow-lg shadow-blue-600/25 transition">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
-          <span>Seleccionar archivo Excel (.xlsx)</span>
-        </label>
-        <input id="file" type="file" accept=".xlsx,.xls" class="sr-only" aria-label="Seleccionar archivo Excel">
-      </div>
-      <div class="pt-2 border-t border-slate-100 dark:border-slate-700/60 flex items-center justify-center gap-4 text-xs text-slate-400 dark:text-slate-500">
-        <span>Formatos: .xlsx, .xls</span>
-        <span>•</span>
-        <span>Balanceo de 11–18 m³</span>
-      </div>
-    </div>
-  </div>
 
-  <!-- Paso 2: Rutas y Mapa (Cockpit Grid estilo Fleetlog) -->
-  <section id="resultsSec" class="hidden flex-1 w-full max-w-[1600px] mx-auto px-3 sm:px-4 py-2.5 h-[calc(100vh-105px)] min-h-[520px]">
-    <div class="grid grid-cols-1 lg:grid-cols-[380px_1fr] gap-3 h-full items-stretch">
-      <!-- Columna Izquierda: Flota Planificada (~380px con scroll independiente) -->
-      <div class="fleetlog-left-col flex flex-col h-full bg-white dark:bg-slate-800 rounded-3xl border border-slate-200/80 dark:border-slate-700 shadow-xs overflow-hidden">
-        <!-- Cabecera de la columna izquierda -->
-        <div class="px-4 py-3 border-b border-slate-100 dark:border-slate-700/80 flex items-center justify-between shrink-0 bg-slate-50/70 dark:bg-slate-800/70 flex-wrap gap-2">
-          <div class="flex items-center gap-2">
-            <span class="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200">Flota Planificada</span>
-            <span id="routesCountBadge" class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300 border border-blue-200 dark:border-blue-800 hidden"></span>
-          </div>
-          <div class="flex items-center gap-1.5 flex-wrap">
-            <button id="btnReplanRoutes" type="button" class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-full text-xs font-bold bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/70 dark:hover:bg-amber-900/70 text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-700 shadow-2xs transition cursor-pointer" title="Replanear y re-zonificar todos los viajes según las direcciones actuales sin duplicados">
-              🔄 Replanear
-            </button>
-            <button id="btnViewAllRoutes" type="button" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-600 shadow-2xs transition cursor-pointer">
-              🗺️ Ver Todas
-            </button>
-          </div>
-        </div>
-
-        <!-- Buscador interactivo de clientes por nombre -->
-        <div class="px-3 pt-2 pb-1 shrink-0">
-          <div class="relative">
-            <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 text-xs">🔍</span>
-            <input id="clientSearchInput" type="text" placeholder="Buscar cliente por nombre..." class="w-full pl-8 pr-8 py-1.5 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition">
-            <button id="clearClientSearchBtn" type="button" class="hidden absolute inset-y-0 right-0 pr-2.5 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-xs cursor-pointer">✕</button>
-          </div>
-          <div id="searchResultsCount" class="text-[11px] text-slate-500 dark:text-slate-400 mt-1 px-1 hidden"></div>
-        </div>
-
-        <!-- Lista de tarjetas de rutas con scroll independiente -->
-        <div id="routes" class="flex-1 overflow-y-auto p-3 space-y-3"></div>
-      </div>
-
-      <!-- Columna Derecha: Contenedor del Mapa a Pantalla Completa con Barra Unificada de Herramientas -->
-      <div class="fleetlog-map-col flex flex-col h-full bg-white dark:bg-slate-800 rounded-3xl border border-slate-200/80 dark:border-slate-700 shadow-xs overflow-hidden relative">
-        <div id="mapWrap" class="w-full h-full relative bg-slate-100 dark:bg-slate-800 rounded-3xl overflow-hidden">
-          <!-- Barra de Controles Superior Unificada del Mapa (Diseño Ergonómico sin Colisiones) -->
-          <div class="map-ui-overlay map-floating-controls absolute top-3 left-3 right-3 z-[1000] flex items-center justify-between gap-2 pointer-events-none flex-wrap">
-            <!-- Zona Izquierda: Contexto de Ruta Activa / Ver Todas -->
-            <div class="flex items-center gap-1.5 pointer-events-auto shrink-0">
-              <span id="mapTitle" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/95 dark:bg-slate-800/95 backdrop-blur-md border border-slate-200 dark:border-slate-700 shadow-md text-xs font-semibold text-slate-800 dark:text-white">
-                🗺️ <strong id="activeRouteLabel">Ruta 1</strong>
-              </span>
-              <button id="btnViewAllRoutesMapBar" type="button" class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-full text-xs font-semibold bg-white/95 dark:bg-slate-800/95 backdrop-blur-md text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 shadow-md transition cursor-pointer" title="Ver todas las rutas simultáneamente en el mapa">
-                🗺️ Ver Todas
-              </button>
-            </div>
-
-            <!-- Zona Derecha: Herramientas Cartográficas, Modos Visuales y Exportación -->
-            <div class="flex items-center gap-1.5 pointer-events-auto flex-wrap justify-end">
-              <!-- Píldora de tamaño de pines: Micro 16px vs Estándar -->
-              <div class="inline-flex rounded-full p-0.5 bg-white/95 dark:bg-slate-800/95 backdrop-blur-md border border-slate-200 dark:border-slate-700 shadow-md" role="group" title="Tamaño de los marcadores en el mapa">
-                <button id="btnPinSizeMicro" type="button" class="px-2.5 py-1 text-xs font-bold rounded-full transition shadow-xs bg-blue-600 text-white cursor-pointer" title="Micro-pines tipo gota de 16px (despejados, sin sobrecarga visual)">
-                  📍 Micro 16px
-                </button>
-                <button id="btnPinSizeStandard" type="button" class="px-2.5 py-1 text-xs font-medium rounded-full transition text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white cursor-pointer" title="Pines en tamaño estándar">
-                  📌 Estándar
-                </button>
-              </div>
-
-              <!-- Píldora de estilo de visualización: Rutas Completas vs Solo Pines -->
-              <div class="inline-flex rounded-full p-0.5 bg-white/95 dark:bg-slate-800/95 backdrop-blur-md border border-slate-200 dark:border-slate-700 shadow-md" role="group">
-                <button id="btnViewStyleFull" type="button" class="px-2.5 py-1 text-xs font-bold rounded-full transition shadow-xs bg-blue-600 text-white cursor-pointer" title="Ver polilíneas viales y pines de paradas">
-                  🛣️ Rutas Completas
-                </button>
-                <button id="btnViewStylePins" type="button" class="px-2.5 py-1 text-xs font-medium rounded-full transition text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white cursor-pointer" title="Ocultar líneas de ruta y mostrar solo pines">
-                  📍 Solo Pines
-                </button>
-              </div>
-
-              <!-- Píldora de alternancia oficial Google Maps: Mapa vs Satélite -->
-              <div class="inline-flex rounded-full p-0.5 bg-white/95 dark:bg-slate-800/95 backdrop-blur-md border border-slate-200 dark:border-slate-700 shadow-md" role="group">
-                <button id="btnLayerRoadmap" type="button" class="px-2.5 py-1 text-xs font-bold rounded-full transition shadow-xs bg-blue-600 text-white cursor-pointer">
-                  🗺️ Mapa
-                </button>
-                <button id="btnLayerSatellite" type="button" class="px-2.5 py-1 text-xs font-semibold rounded-full transition text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white cursor-pointer">
-                  🛰️ Satélite
-                </button>
-              </div>
-
-              <!-- Botón flotante Descargar Mapa PNG (ID y clases intactas para exportación) -->
-              <button id="btnDownloadMapPng" type="button" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-white/95 dark:bg-slate-800/95 text-blue-600 dark:text-blue-400 backdrop-blur-md border border-slate-200 dark:border-slate-700 shadow-md hover:bg-blue-600 hover:text-white dark:hover:bg-blue-600 dark:hover:text-white transition cursor-pointer" title="Descargar vista actual del mapa en imagen PNG">
-                📸 Descargar Mapa
-              </button>
-
-              <!-- Botón flotante Pantalla Completa -->
-              <button id="btnToggleFullscreen" type="button" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-white/95 dark:bg-slate-800/95 text-slate-700 dark:text-slate-200 backdrop-blur-md border border-slate-200 dark:border-slate-700 shadow-md hover:bg-slate-100 dark:hover:bg-slate-700 transition cursor-pointer" title="Ver mapa en pantalla completa (o presiona F / Esc para salir)">
-                <span id="fullscreenIcon">⛶</span> <span id="fullscreenText">Pantalla Completa</span>
-              </button>
-            </div>
-          </div>
-
-          <!-- Contenedor del Mapa Leaflet -->
-          <div id="map" class="w-full h-full"></div>
-        </div>
-      </div>
-    </div>
-  </section>
-</main>
 
 <!-- Modal para Corregir Dirección y Elegir Ubicación (Ubicado fuera de main para evitar solapamiento del mapa) -->
 <div id="editLocModal" style="z-index: 99999 !important;" class="hidden fixed inset-0 bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-3 z-[99999]">
@@ -1153,9 +1765,20 @@ header > div,
 // =========================================================================
 // CONFIGURACIÓN SEGURA DE GOOGLE MAPS API (INYECTADA VÍA VARIABLE DE ENTORNO)
 // =========================================================================
-const GOOGLE_API_KEY = (window.__APP_CONFIG__ && window.__APP_CONFIG__.GOOGLE_MAPS_API_KEY)
-  ? String(window.__APP_CONFIG__.GOOGLE_MAPS_API_KEY).trim()
-  : "";
+function decodeConfigKey(val) {
+  if (!val || typeof val !== 'string') return '';
+  const trimmed = val.trim();
+  if (trimmed.startsWith('AIzaSy')) return trimmed;
+  try {
+    const decoded = atob(trimmed);
+    if (decoded && decoded.startsWith('AIzaSy')) return decoded;
+  } catch (e) {}
+  return trimmed;
+}
+
+const GOOGLE_API_KEY = decodeConfigKey(
+  window.__APP_CONFIG__ && window.__APP_CONFIG__.GOOGLE_MAPS_API_KEY
+);
 
 function getGoogleApiKey() {
   return GOOGLE_API_KEY;
@@ -2349,10 +2972,150 @@ function generateCorrectedRows(rows, addrCol) {
   });
 }
 
-function showSummary(x) {
-  const city = Object.entries(x.cities).map(([k, v]) => `<li>${esc(k)}: ${v} filas</li>`).join('');
-  const cor = Object.entries(x.corrected).map(([k, v]) => `<li>${esc(k)} → FUNZA: ${v} filas</li>`).join('');
-  document.getElementById('summary').innerHTML = `
+function downloadAuditReport() {
+  if (!S.stats && (!S.routes || !S.routes.length)) {
+    toast('No hay datos de auditoría disponibles para exportar', 'warn');
+    return;
+  }
+  const wb = XLSX.utils.book_new();
+
+  // 1. Hoja de Cumplimiento de Flota
+  if (S.routes && S.routes.length) {
+    const fleetData = S.routes.map(r => {
+      const st = active(r) || [];
+      const cCount = st.length;
+      const v = vol(st);
+      let estado = 'Óptimo (Modo Cómodo)';
+      if (cCount > 15 || v > 18.0) estado = 'Tope Excedido (Máx 15 / 18m³)';
+      else if (cCount < 7 || v < 10.0) estado = 'Baja Carga (Mín 7 / 10m³)';
+
+      return {
+        'Ruta': `Ruta ${r.id + 1}`,
+        'Clientes': cCount,
+        'Carga (m³)': Number(v.toFixed(2)),
+        'Distancia Vial (km)': getRouteEffectiveKm(r) || 0,
+        'Duración Aprox (min)': r.realDurationMin || Math.round((getRouteEffectiveKm(r) / 25) * 60) || 0,
+        'Secuencia': r.option || 'A',
+        'Sector Principal': st[0]?.zone || 'No clasificado',
+        'Estado Cumplimiento TMS': estado
+      };
+    });
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(fleetData), 'Auditoria_Flota');
+  }
+
+  // 2. Hoja de Exclusiones Detalladas
+  if (S.excludedRows && S.excludedRows.length) {
+    const exclData = S.excludedRows.map(r => {
+      const cm = S.cm || {};
+      return {
+        'Motivo Exclusión': r._motivo || 'Excluido',
+        'Cliente': r[cm.name] || r.Cliente || r.CLIENTE || '',
+        'Dirección Original': r[cm.addr] || r.Direccion || r.DIRECCION || '',
+        'Ciudad': r[cm.city] || r.Ciudad || r.CIUDAD || '',
+        'Pedido': r[cm.order] || r.Pedido || r.PEDIDO || '',
+        'Volumen': r[cm.volume] || r.Volumen || r.VOLUMEN || '',
+        'Descripción': r[cm.desc] || r.Descripcion || r.DESCRIPCION || ''
+      };
+    });
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(exclData), 'Exclusiones_Operativas');
+  }
+
+  const dateStr = new Date().toISOString().slice(0, 10);
+  XLSX.writeFile(wb, `Auditoria_Despacho_Jamar_${dateStr}.xlsx`);
+  toast('📊 Reporte completo de auditoría descargado en Excel', 'success');
+}
+
+function renderAuditSummary() {
+  const summaryEl = document.getElementById('summary');
+  if (!summaryEl) return;
+  if (!S.stats) {
+    summaryEl.innerHTML = '<p class="text-slate-400 py-4 text-center">Aún no se ha procesado ningún archivo de despachos.</p>';
+    return;
+  }
+  const x = S.stats;
+  const city = Object.entries(x.cities || {}).map(([k, v]) => `<li>${esc(k)}: ${v} filas</li>`).join('');
+  const cor = Object.entries(x.corrected || {}).map(([k, v]) => `<li>${esc(k)} → FUNZA: ${v} filas</li>`).join('');
+
+  let fleetAuditHtml = '';
+  if (S.routes && S.routes.length) {
+    let optimalCount = 0;
+    let overMaxCount = 0;
+    let underMinCount = 0;
+    let totalFleetVol = 0;
+    let totalFleetStops = 0;
+
+    const routeRowsHtml = S.routes.map(r => {
+      const st = active(r) || [];
+      const cCount = st.length;
+      const v = vol(st);
+      totalFleetVol += v;
+      totalFleetStops += cCount;
+
+      let badge = '';
+      if (cCount > 15 || v > 18.0) {
+        overMaxCount++;
+        badge = '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300">🚨 Tope Excedido</span>';
+      } else if (cCount < 7 || v < 10.0) {
+        underMinCount++;
+        badge = '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">⚠️ Baja Carga</span>';
+      } else {
+        optimalCount++;
+        badge = '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">✅ Modo Cómodo</span>';
+      }
+
+      const km = getRouteEffectiveKm(r);
+      const zoneBadge = st[0]?.zone ? `<span class="text-[10px] text-slate-500 dark:text-slate-400">${st[0].zone}</span>` : '-';
+
+      return `
+        <tr class="border-b border-slate-100 dark:border-slate-700/60 text-xs">
+          <td class="py-1.5 px-2 font-semibold text-slate-800 dark:text-slate-100">Ruta ${r.id + 1}</td>
+          <td class="py-1.5 px-2">${cCount} clientes</td>
+          <td class="py-1.5 px-2 font-medium">${v.toFixed(1)} m³</td>
+          <td class="py-1.5 px-2">${km ? `${km} km` : '-'}</td>
+          <td class="py-1.5 px-2">${zoneBadge}</td>
+          <td class="py-1.5 px-2">${badge}</td>
+        </tr>
+      `;
+    }).join('');
+
+    fleetAuditHtml = `
+      <div class="mt-3 p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-700/40 border border-slate-200/80 dark:border-slate-600 space-y-2">
+        <div class="flex items-center justify-between flex-wrap gap-2">
+          <h4 class="font-bold text-xs uppercase tracking-wider text-slate-800 dark:text-slate-100 flex items-center gap-1.5">
+            <span>🚚</span> Auditoría de Flota Planificada (${S.routes.length} camiones)
+          </h4>
+          <div class="flex items-center gap-2 text-[11px] flex-wrap">
+            <span class="text-emerald-600 dark:text-emerald-400 font-semibold">✅ ${optimalCount} balanceadas</span>
+            ${overMaxCount ? `<span class="text-rose-600 dark:text-rose-400 font-bold">🚨 ${overMaxCount} excedidas</span>` : ''}
+            ${underMinCount ? `<span class="text-amber-600 dark:text-amber-400 font-semibold">⚠️ ${underMinCount} subutilizadas</span>` : ''}
+          </div>
+        </div>
+
+        <div class="max-h-48 overflow-y-auto rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
+          <table class="w-full text-left">
+            <thead class="bg-slate-50 dark:bg-slate-700/80 text-[10px] text-slate-500 dark:text-slate-400 uppercase font-bold sticky top-0">
+              <tr>
+                <th class="py-1.5 px-2">Camión</th>
+                <th class="py-1.5 px-2">Clientes</th>
+                <th class="py-1.5 px-2">Carga</th>
+                <th class="py-1.5 px-2">Km</th>
+                <th class="py-1.5 px-2">Sector</th>
+                <th class="py-1.5 px-2">Cumplimiento</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${routeRowsHtml}
+            </tbody>
+          </table>
+        </div>
+        <p class="text-[11px] text-slate-500 dark:text-slate-400">
+          Carga total despachada: <b>${totalFleetVol.toFixed(1)} m³</b> | Promedio por camión: <b>${(totalFleetVol / S.routes.length).toFixed(1)} m³</b> (${(totalFleetStops / S.routes.length).toFixed(1)} clientes/camión).
+        </p>
+      </div>
+    `;
+  }
+
+  summaryEl.innerHTML = `
     <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
       <div class="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-700/50 border border-slate-200/80 dark:border-slate-600 space-y-1">
         <p class="font-semibold text-slate-800 dark:text-slate-100">📥 Filas leídas: <span class="font-bold text-blue-600 dark:text-blue-400">${x.rows}</span></p>
@@ -2368,21 +3131,26 @@ function showSummary(x) {
         ${cor ? `<div class="mt-1 text-xs text-blue-600 dark:text-blue-400 font-medium">Corrección automática:<ul>${cor}</ul></div>` : ''}
       </div>
     </div>
+
+    ${fleetAuditHtml}
+
     <div class="mt-3 pt-3 border-t border-slate-200 dark:border-slate-700 flex flex-wrap items-center justify-between gap-3">
-      <span class="text-xs text-slate-500 dark:text-slate-400">¿Deseas descargar el archivo original con las direcciones normalizadas?</span>
-      <div class="flex items-center gap-2">
-        <button id="reopenColMapBtn" type="button" class="px-3.5 py-2 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold shadow-2xs transition inline-flex items-center gap-1.5 cursor-pointer">
-          <span>📋</span>
-          <span>Mapeo de Columnas</span>
+      <div class="flex items-center gap-2 flex-wrap">
+        <button id="reopenColMapBtn" type="button" class="px-3 py-1.5 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold shadow-2xs transition inline-flex items-center gap-1.5 cursor-pointer">
+          <span>📋</span> Mapeo Columnas
         </button>
-        <button id="downloadExcelFromSummaryBtn" type="button" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-xs transition inline-flex items-center gap-1.5 cursor-pointer">
-          <span>📥</span>
-          <span>Descargar Excel con Direcciones Corregidas (.xlsx)</span>
+        <button id="downloadAuditReportBtn" type="button" class="px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-xs transition inline-flex items-center gap-1.5 cursor-pointer" title="Descargar libro Excel con auditoría de exclusiones y flota">
+          <span>📊</span> Descargar Informe de Auditoría (.xlsx)
+        </button>
+        <button id="downloadExcelFromSummaryBtn" type="button" class="px-3 py-1.5 rounded-xl border border-emerald-300 dark:border-emerald-700 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/60 dark:hover:bg-emerald-900/60 text-emerald-800 dark:text-emerald-200 text-xs font-semibold shadow-2xs transition inline-flex items-center gap-1.5 cursor-pointer">
+          <span>📥</span> Excel Corregido (.xlsx)
         </button>
       </div>
+      <button id="closeShiftFromSummaryBtn" type="button" class="px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold shadow-xs transition inline-flex items-center gap-1.5 cursor-pointer">
+        <span>🔒</span> Cerrar Turno
+      </button>
     </div>
   `;
-  // La auditoría se mantiene oculta por defecto y solo se abre al pulsar "Ver Auditoría ▾"
 
   const reopenBtn = document.getElementById('reopenColMapBtn');
   if (reopenBtn) {
@@ -2399,9 +3167,14 @@ function showSummary(x) {
     };
   }
 
-  const btn = document.getElementById('downloadExcelFromSummaryBtn');
-  if (btn) {
-    btn.onclick = () => {
+  const auditBtn = document.getElementById('downloadAuditReportBtn');
+  if (auditBtn) {
+    auditBtn.onclick = downloadAuditReport;
+  }
+
+  const normBtn = document.getElementById('downloadExcelFromSummaryBtn');
+  if (normBtn) {
+    normBtn.onclick = () => {
       if (!S.rawRows || !S.rawRows.length) return;
       const h = Object.keys(S.rawRows[0] || {});
       const addrCol = (S.cm && S.cm.addr) || findColSmart(h, 'addr', S.rawRows) || 'Dirección';
@@ -2413,6 +3186,19 @@ function showSummary(x) {
       toast('Excel descargado con columna de direcciones corregidas', 'success');
     };
   }
+
+  const shiftBtn = document.getElementById('closeShiftFromSummaryBtn');
+  if (shiftBtn) {
+    shiftBtn.onclick = () => {
+      document.getElementById('summarySec').classList.add('hidden');
+      closeShift();
+    };
+  }
+}
+
+function showSummary(x) {
+  S.stats = x;
+  renderAuditSummary();
 }
 
 const CM = {
@@ -3340,6 +4126,10 @@ async function geocodeAll(onlyAlerts = false) {
   if (progSec) progSec.classList.remove('hidden');
   const progTotal = document.getElementById('progressTotal');
   if (progTotal) progTotal.textContent = list.length;
+  const progPercent = document.getElementById('progressPercent');
+  if (progPercent) progPercent.textContent = '0%';
+  const progBar = document.getElementById('progressBar');
+  if (progBar) progBar.style.width = '0%';
   S.alerts = [];
 
   for (let i = 0; i < list.length; i++) {
@@ -3391,10 +4181,14 @@ async function geocodeAll(onlyAlerts = false) {
       S.alerts.push(d);
     }
 
+    const nowCount = i + 1;
+    const pct = Math.round((nowCount / list.length) * 100);
     const progNow = document.getElementById('progressNow');
-    if (progNow) progNow.textContent = i + 1;
+    if (progNow) progNow.textContent = nowCount;
+    const progPercent = document.getElementById('progressPercent');
+    if (progPercent) progPercent.textContent = pct + '%';
     const progBar = document.getElementById('progressBar');
-    if (progBar) progBar.style.width = ((i + 1) / list.length * 100) + '%';
+    if (progBar) progBar.style.width = pct + '%';
   }
 
   if (progSec) progSec.classList.add('hidden');
@@ -3826,6 +4620,75 @@ document.getElementById('continue').onclick = () => {
   generate();
 };
 
+function closeShift() {
+  const hasData = (S.destinations && S.destinations.length > 0) || (S.routes && S.routes.length > 0);
+  if (!hasData) {
+    toast('No hay datos operativos en pantalla para purgar', 'info');
+    return;
+  }
+  const confirmed = window.confirm(
+    '¿Deseas cerrar el turno y purgar todos los datos operativos de clientes de la memoria?\n\n' +
+    '• Se eliminarán los pedidos cargados, rutas calculadas y datos personales de clientes en pantalla.\n' +
+    '• La caché de geocodificación se preserva intacta para no re-consumir cuota de mapas mañana.'
+  );
+  if (!confirmed) return;
+
+  S.destinations = [];
+  S.routes = [];
+  S.alerts = [];
+  S.rawRows = [];
+  S.rawHeaders = [];
+  S.cm = {};
+  S.orders = [];
+  S.stats = null;
+  S.excludedRows = [];
+  S.currentRouteIndex = 0;
+
+  if (S.markers) S.markers.clearLayers();
+  if (S.routeLayer) S.routeLayer.clearLayers();
+
+  const resultsSec = document.getElementById('resultsSec');
+  if (resultsSec) resultsSec.classList.add('hidden');
+
+  const alertsSec = document.getElementById('alertsSec');
+  if (alertsSec) alertsSec.classList.add('hidden');
+
+  const welcomeArea = document.getElementById('welcomeUploadArea');
+  if (welcomeArea) welcomeArea.classList.remove('hidden');
+
+  const fileInput = document.getElementById('file');
+  if (fileInput) fileInput.value = '';
+
+  const statPedEl = document.querySelector('#statPedidos div');
+  if (statPedEl) statPedEl.textContent = '0';
+  const statDestEl = document.querySelector('#statDest div');
+  if (statDestEl) statDestEl.textContent = '0';
+  const statREl = document.querySelector('#statR div');
+  if (statREl) statREl.textContent = '0';
+  const statExEl = document.querySelector('#statEx div');
+  if (statExEl) statExEl.textContent = '0';
+
+  const summary = document.getElementById('summary');
+  if (summary) summary.innerHTML = '<p class="text-slate-400 py-4 text-center">Aún no se ha procesado ningún archivo de despachos.</p>';
+
+  const emptyState = document.getElementById('mapEmptyState');
+  if (emptyState) {
+    emptyState.classList.remove('opacity-0', 'pointer-events-none');
+  }
+  const summaryList = document.getElementById('routesSummaryList');
+  if (summaryList) {
+    summaryList.innerHTML = '<p class="text-xs text-slate-400 text-center py-8">Cargue un archivo o active la demo para generar las rutas.</p>';
+  }
+  if (typeof switchListTab === 'function') switchListTab('rutas');
+
+  toast('🔒 Turno cerrado exitosamente: Datos operativos purgados de la memoria.', 'success');
+}
+
+const closeShiftBtn = document.getElementById('closeShiftBtn');
+if (closeShiftBtn) {
+  closeShiftBtn.onclick = closeShift;
+}
+
 const clearCacheBtn = document.getElementById('clearCacheBtn');
 if (clearCacheBtn) {
   clearCacheBtn.onclick = handleClearCacheAndRegeocode;
@@ -4087,13 +4950,66 @@ function recalcRoutesDist() {
 /**
  * Control del Modo de Distribución de Carga (Ruta Cómoda vs Capacidad Máxima)
  */
+function showRecalcModal(mode) {
+  const modal = document.getElementById('recalcModal');
+  const modeText = document.getElementById('recalcModalModeText');
+  if (modeText) {
+    if (mode === 'comfort') {
+      modeText.textContent = 'Modo Cómodo Balanceado (11–14 m³)';
+    } else {
+      modeText.textContent = 'Modo Capacidad Máxima (hasta 18 m³)';
+    }
+  }
+  if (modal) {
+    modal.classList.remove('hidden', 'pointer-events-none');
+    void modal.offsetWidth; // Force repaint
+    modal.classList.remove('opacity-0');
+    modal.classList.add('opacity-100');
+  }
+}
+
+function hideRecalcModal() {
+  const modal = document.getElementById('recalcModal');
+  if (modal) {
+    modal.classList.remove('opacity-100');
+    modal.classList.add('opacity-0', 'pointer-events-none');
+    setTimeout(() => {
+      modal.classList.add('hidden');
+    }, 220);
+  }
+}
+
 function setRouteDistributionMode(mode) {
+  const previousMode = S.routeDistributionMode;
   S.routeDistributionMode = mode;
   safeSet('rutasjamar_dist_mode', mode);
   updateDistModeUI();
+
   if (S.destinations && S.destinations.some(d => d.geocoded)) {
-    generate();
-    toast(`Modo aplicado: ${mode === 'comfort' ? 'Ruta Cómoda y Balanceada' : 'Capacidad Máxima'}`, 'info');
+    if (previousMode === mode && S.routes && S.routes.length > 0) {
+      toast(`Modo activo: ${mode === 'comfort' ? 'Ruta Cómoda y Balanceada (11-14 m³)' : 'Capacidad Máxima (18 m³)'}`, 'info');
+      return;
+    }
+
+    // Mostrar pantalla de carga elegante
+    showRecalcModal(mode);
+
+    // Dar tiempo al navegador (80ms) para pintar el modal y arrancar la animación fluida
+    setTimeout(() => {
+      try {
+        generate();
+        toast(`Modo aplicado: ${mode === 'comfort' ? 'Ruta Cómoda y Balanceada (11-14 m³)' : 'Capacidad Máxima (hasta 18 m³)'}`, 'success');
+      } catch (err) {
+        console.error('Error al recalcular cubicaje:', err);
+        toast('Error al recalcular rutas de flota.', 'error');
+      } finally {
+        setTimeout(() => {
+          hideRecalcModal();
+        }, 300);
+      }
+    }, 80);
+  } else {
+    toast(`Modo configurado: ${mode === 'comfort' ? 'Ruta Cómoda (11-14 m³)' : 'Capacidad Máxima (18 m³)'}. Se aplicará al cargar destinos.`, 'info');
   }
 }
 
@@ -4110,12 +5026,15 @@ function updateDistModeUI() {
   const statDestTarget = document.getElementById('statDestTarget');
 
   if (btnComfort && btnMax) {
+    const activeClasses = ['bg-[#EA580C]', 'text-white', 'font-bold', 'shadow-xs'];
+    const inactiveClasses = ['text-slate-600', 'dark:text-slate-300', 'font-medium', 'hover:text-slate-900', 'dark:hover:text-white'];
+
     if (isComfort) {
-      btnComfort.className = 'px-3 py-1 rounded-full text-xs font-bold transition shadow-xs bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 cursor-pointer';
-      btnMax.className = 'px-3 py-1 rounded-full text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition cursor-pointer';
+      btnComfort.className = 'py-1 px-2 rounded-md font-bold transition cursor-pointer text-center bg-[#EA580C] text-white shadow-xs';
+      btnMax.className = 'py-1 px-2 rounded-md font-medium transition cursor-pointer text-center text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white';
     } else {
-      btnMax.className = 'px-3 py-1 rounded-full text-xs font-bold transition shadow-xs bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 cursor-pointer';
-      btnComfort.className = 'px-3 py-1 rounded-full text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition cursor-pointer';
+      btnMax.className = 'py-1 px-2 rounded-md font-bold transition cursor-pointer text-center bg-[#EA580C] text-white shadow-xs';
+      btnComfort.className = 'py-1 px-2 rounded-md font-medium transition cursor-pointer text-center text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white';
     }
   }
 
@@ -4656,6 +5575,15 @@ function generate() {
   document.getElementById('resultsSec').classList.remove('hidden');
   initMap();
 
+  const emptyState = document.getElementById('mapEmptyState');
+  if (emptyState) {
+    emptyState.classList.add('opacity-0', 'pointer-events-none');
+  }
+
+  setTimeout(() => {
+    if (S.map) S.map.invalidateSize();
+  }, 250);
+
   if (S.routes[0]) {
     S.currentRouteIndex = 0;
     draw(S.routes[0]);
@@ -4671,23 +5599,23 @@ function active(r) {
 function getZoneBadge(zone) {
   switch (zone) {
     case 'SABANA_OCCIDENTE':
-      return '<span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">Sabana Occidente</span>';
+      return '<span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">Sabana Occidente</span>';
     case 'SABANA_NORTE':
-      return '<span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-cyan-100 text-cyan-800 dark:bg-cyan-950 dark:text-cyan-300">Sabana Norte</span>';
+      return '<span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-cyan-500/15 text-cyan-400 border border-cyan-500/30">Sabana Norte</span>';
     case 'SOACHA_SUR':
-      return '<span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300">Soacha / Sur</span>';
+      return '<span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-purple-500/15 text-purple-400 border border-purple-500/30">Soacha / Sur</span>';
     case 'BOGOTA_NORTE':
-      return '<span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-teal-100 text-teal-800 dark:bg-teal-950 dark:text-teal-300">Bogotá Norte</span>';
+      return '<span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-teal-500/15 text-teal-400 border border-teal-500/30">Bogotá Norte</span>';
     case 'BOGOTA_OCCIDENTE':
-      return '<span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-indigo-100 text-indigo-800 dark:bg-indigo-950 dark:text-indigo-300">Bogotá Occidente</span>';
+      return '<span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-indigo-500/15 text-indigo-400 border border-indigo-500/30">Bogotá Occidente</span>';
     case 'BOGOTA_SUR':
-      return '<span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300">Bogotá Sur</span>';
+      return '<span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/15 text-blue-400 border border-blue-500/30">Bogotá Sur</span>';
     case 'BOGOTA_CENTRO_ORIENTE':
-      return '<span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">Centro / Oriente</span>';
+      return '<span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-400 border border-amber-500/30">Centro / Oriente</span>';
     case 'BOGOTA_SUR_ALTO':
-      return '<span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300">Sur Montaña</span>';
+      return '<span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/15 text-rose-400 border border-rose-500/30">Sur Montaña</span>';
     default:
-      return '<span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-300">Bogotá Urbana</span>';
+      return '<span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-500/15 text-slate-300 border border-slate-500/30">Bogotá Urbana</span>';
   }
 }
 
@@ -4833,7 +5761,11 @@ async function syncAllRoutesRealDistance() {
 
       try {
         const pts = allStops.map(x => `${x.lng},${x.lat}`).join(';');
-        const res = await fetch(OSRM + pts + '?overview=full&geometries=geojson');
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 4500);
+        const res = await fetch(OSRM + pts + '?overview=full&geometries=geojson', { signal: controller.signal });
+        clearTimeout(timeoutId);
+        if (!res.ok) throw new Error('OSRM status ' + res.status);
         const j = await res.json();
         if (j.routes && j.routes[0]) {
           const ll = j.routes[0].geometry.coordinates.map(x => [x[1], x[0]]);
@@ -4841,13 +5773,60 @@ async function syncAllRoutesRealDistance() {
           const durationMin = Math.round(j.routes[0].duration / 60);
           r._osrmCache[cacheKey] = { coordinates: ll, distanceKm, durationMin };
           applyRealDistanceToRoute(r, distanceKm, durationMin, optKey);
+        } else {
+          throw new Error('OSRM no routes');
         }
       } catch (e) {
-        // Si OSRM no responde o no hay red, conserva la distancia estimada sin alterar la experiencia
+        // Respaldo local de resiliencia: Si OSRM no responde o da 429, calcular distancia vial ponderada
+        const fallbackKm = dist(st, returnDep);
+        const fallbackDur = Math.round((fallbackKm / 25) * 60);
+        applyRealDistanceToRoute(r, fallbackKm, fallbackDur, optKey);
       }
     }
   }
 }
+
+
+// Alternador de pestañas RUTAS vs DETALLES en la Columna 2
+window.switchListTab = function(tab) {
+  const tabRutasBtn = document.getElementById('tabRutasBtn');
+  const tabDetallesBtn = document.getElementById('tabDetallesBtn');
+  const tabRutasContainer = document.getElementById('tabRutasContainer');
+  const tabDetallesContainer = document.getElementById('tabDetallesContainer');
+
+  if (!tabRutasBtn || !tabDetallesBtn) return;
+
+  const activeClasses = ['bg-white', 'dark:bg-[#162036]', 'text-orange-600', 'dark:text-orange-400', 'font-black', 'shadow-sm', 'border', 'border-slate-200/80', 'dark:border-slate-700'];
+  const inactiveClasses = ['text-slate-500', 'hover:text-slate-800', 'dark:text-slate-400', 'dark:hover:text-white', 'font-semibold'];
+
+  if (tab === 'rutas') {
+    tabRutasBtn.classList.add(...activeClasses);
+    tabRutasBtn.classList.remove(...inactiveClasses);
+    tabDetallesBtn.classList.remove(...activeClasses);
+    tabDetallesBtn.classList.add(...inactiveClasses);
+    if (tabRutasContainer) tabRutasContainer.classList.remove('hidden');
+    if (tabDetallesContainer) tabDetallesContainer.classList.add('hidden');
+  } else {
+    tabDetallesBtn.classList.add(...activeClasses);
+    tabDetallesBtn.classList.remove(...inactiveClasses);
+    tabRutasBtn.classList.remove(...activeClasses);
+    tabRutasBtn.classList.add(...inactiveClasses);
+    if (tabDetallesContainer) tabDetallesContainer.classList.remove('hidden');
+    if (tabRutasContainer) tabRutasContainer.classList.add('hidden');
+  }
+};
+
+
+window.selectRouteAndShowDetails = function(routeId) {
+  S.viewMode = 'single';
+  S.currentRouteIndex = routeId;
+  const r = (S.routes || []).find(x => x.id === routeId);
+  if (r) {
+    draw(r, { fit: true });
+    renderRoutes();
+    switchListTab('detalles');
+  }
+};
 
 function renderRoutes() {
   const back = isReturnDepot();
@@ -4871,7 +5850,7 @@ function renderRoutes() {
       drawAllRoutes();
     };
     if (S.viewMode === 'all') {
-      allBtn.className = 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-brand-600 text-white ring-2 ring-brand-400 shadow-sm transition cursor-pointer';
+      allBtn.className = 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-[#EA580C] text-white shadow-xs transition cursor-pointer';
     } else {
       allBtn.className = 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700 shadow-xs transition cursor-pointer';
     }
@@ -4885,7 +5864,7 @@ function renderRoutes() {
   const mapBarBtn = document.getElementById('btnViewAllRoutesMapBar');
   if (mapBarBtn) {
     if (S.viewMode === 'all') {
-      mapBarBtn.className = 'inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-brand-600 text-white ring-2 ring-brand-400 shadow-sm transition cursor-pointer';
+      mapBarBtn.className = 'w-full flex items-center justify-center gap-2 py-1.5 px-2.5 rounded-lg border border-orange-500 bg-orange-50 text-orange-700 dark:bg-orange-950/60 dark:text-orange-300 text-xs font-bold shadow-xs transition cursor-pointer';
     } else {
       mapBarBtn.className = 'inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-600 shadow-xs transition cursor-pointer';
     }
@@ -4977,7 +5956,7 @@ function renderRoutes() {
               <div class="flex justify-between items-start gap-2">
                 <div class="min-w-0 flex-1">
                   <div class="font-medium ${isAct ? 'text-white' : 'text-slate-800 dark:text-slate-200'} flex items-center gap-1.5 flex-wrap">
-                    <strong class="shrink-0">${i + 1}.</strong>
+                    <span class="w-5 h-5 rounded-full flex items-center justify-center font-bold text-[10px] bg-slate-800 text-blue-400 border border-slate-700/80 shrink-0 shadow-2xs">${i + 1}</span>
                     <span class="client-name font-semibold truncate">${esc(isMulti ? d.clienteDisplay : d.cliente)}</span>
                     ${isMulti ? `<span class="shrink-0 px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/30">🏢 ${d.entregas.length} entregas</span>` : ''}
                   </div>
@@ -5120,6 +6099,72 @@ function renderRoutes() {
 
   // Re-aplicar filtro si hay búsqueda activa de cliente
   applyClientSearchFilter();
+
+  // Actualizar la Pestaña 1 (RUTAS: Resumen compacto de rutas RUTA 1, RUTA 2...)
+  const summaryListEl = document.getElementById('routesSummaryList');
+  if (summaryListEl && S.routes && S.routes.length) {
+    summaryListEl.innerHTML = S.routes.map(r => {
+      const st = active(r);
+      const isAct = (S.viewMode !== 'all') && (r.id === S.currentRouteIndex);
+      const dominantZone = getRouteDominantZone(st);
+      const isChecked = r.visible !== false;
+      const volTotal = vol(st);
+      const volPct = Math.min(100, Math.round((volTotal / MAX_VOL) * 100));
+      const volColor = volTotal > MAX_VOL ? 'bg-red-500' : (volTotal >= 11 && volTotal <= 14) ? 'bg-emerald-500' : 'bg-orange-500';
+      const effectiveKm = getRouteEffectiveKm(r);
+
+      return `
+        <div class="route-summary-item p-3.5 rounded-xl border ${isAct ? 'border-orange-500 bg-orange-50/40 dark:bg-orange-950/20 active-route' : 'border-slate-200 dark:border-slate-700/80 bg-white dark:bg-[#162036]'} shadow-xs hover:border-orange-400 transition cursor-pointer" data-r="${r.id}">
+          <div class="flex items-center justify-between gap-2">
+            <div class="flex items-center gap-2.5">
+              <input type="checkbox" class="route-summary-checkbox w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-orange-600 focus:ring-orange-500 cursor-pointer shrink-0" data-r="${r.id}" ${isChecked ? 'checked' : ''} onclick="event.stopPropagation();" title="Mostrar/Ocultar en mapa">
+              <span class="w-3.5 h-3.5 rounded-full shrink-0 shadow-xs" style="background:${r.color}"></span>
+              <div>
+                <b class="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wide">Ruta ${r.id + 1}</b>
+                <div class="text-[10px] text-slate-500 dark:text-slate-400 font-medium">${(dominantZone || '').replace('_', ' ')}</div>
+              </div>
+            </div>
+            <div class="text-right">
+              <span class="text-xs font-bold text-slate-800 dark:text-slate-200">${st.length} clientes</span>
+              <div class="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">${effectiveKm} km</div>
+            </div>
+          </div>
+          <!-- Barra de Capacidad m³ -->
+          <div class="mt-2 pt-1 border-t border-slate-100 dark:border-slate-700/50">
+            <div class="flex justify-between items-center text-[10px] mb-1 text-slate-500 dark:text-slate-400 font-medium">
+              <span>Carga: <strong class="text-slate-800 dark:text-slate-200">${volTotal.toFixed(2)} m³</strong></span>
+              <span>${volPct}%</span>
+            </div>
+            <div class="w-full bg-slate-100 dark:bg-slate-700/70 h-1.5 rounded-full overflow-hidden">
+              <div class="${volColor} h-1.5 rounded-full transition-all duration-300" style="width: ${volPct}%"></div>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    // Asignar click para seleccionar ruta e ir a Detalles
+    summaryListEl.querySelectorAll('.route-summary-item').forEach(card => {
+      card.onclick = (e) => {
+        if (e.target.closest('.route-summary-checkbox')) return;
+        const rid = +card.dataset.r;
+        selectRouteAndShowDetails(rid);
+      };
+    });
+
+    // Checkbox para visibilidad en mapa
+    summaryListEl.querySelectorAll('.route-summary-checkbox').forEach(chk => {
+      chk.onchange = (e) => {
+        const rid = +chk.dataset.r;
+        const r = (S.routes || []).find(x => x.id === rid);
+        if (r) {
+          r.visible = chk.checked;
+          renderRoutes();
+          drawAllRoutes();
+        }
+      };
+    });
+  }
 }
 
 /**
@@ -5584,7 +6629,7 @@ function updateLayerButtonsUI(activeKey) {
   const btnSatellite = document.getElementById('btnLayerSatellite');
   if (!btnRoadmap || !btnSatellite) return;
 
-  const activeClasses = ['bg-white', 'text-slate-900', 'dark:bg-slate-700', 'dark:text-white', 'font-semibold', 'shadow-xs'];
+  const activeClasses = ['bg-[#EA580C]', 'text-white', 'font-bold', 'shadow-xs'];
   const inactiveClasses = ['text-slate-600', 'dark:text-slate-300', 'font-medium', 'hover:text-slate-900', 'dark:hover:text-white'];
 
   if (activeKey === 'roadmap') {
@@ -5622,7 +6667,7 @@ function updatePinSizeModeUI(activeSize = 'micro') {
   const btnStd = document.getElementById('btnPinSizeStandard');
   if (!btnMicro || !btnStd) return;
 
-  const activeClasses = ['bg-blue-600', 'text-white', 'font-bold', 'shadow-xs'];
+  const activeClasses = ['bg-[#EA580C]', 'text-white', 'font-bold', 'shadow-xs'];
   const inactiveClasses = ['text-slate-600', 'dark:text-slate-300', 'font-medium', 'hover:text-slate-900', 'dark:hover:text-white'];
 
   if (activeSize === 'micro') {
@@ -5678,7 +6723,7 @@ function updateRouteViewStyleUI(activeStyle = 'completo') {
   const btnPins = document.getElementById('btnViewStylePins');
   if (!btnFull || !btnPins) return;
 
-  const activeClasses = ['bg-blue-600', 'text-white', 'font-bold', 'shadow-xs'];
+  const activeClasses = ['bg-[#EA580C]', 'text-white', 'font-bold', 'shadow-xs'];
   const inactiveClasses = ['text-slate-600', 'dark:text-slate-300', 'font-medium', 'hover:text-slate-900', 'dark:hover:text-white'];
 
   if (activeStyle === 'completo') {
@@ -6245,7 +7290,11 @@ async function draw(r, { preserveView = false } = {}) {
 
   try {
     const pts = allStops.map(x => `${x.lng},${x.lat}`).join(';');
-    const res = await fetch(OSRM + pts + '?overview=full&geometries=geojson');
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 4500);
+    const res = await fetch(OSRM + pts + '?overview=full&geometries=geojson', { signal: controller.signal });
+    clearTimeout(timeoutId);
+    if (!res.ok) throw new Error('OSRM status ' + res.status);
     const j = await res.json();
     if (j.routes && j.routes[0]) {
       const ll = j.routes[0].geometry.coordinates.map(x => [x[1], x[0]]);
@@ -6262,6 +7311,11 @@ async function draw(r, { preserveView = false } = {}) {
   } catch (e) {
     const ll = allStops.map(x => [x.lat, x.lng]);
     L.polyline(ll, { color: r.color, weight: 4, dashArray: '6,6' }).addTo(S.routeLayer);
+    if (!r.realKm) {
+      const fallbackKm = dist(st, returnDep);
+      const fallbackDur = Math.round((fallbackKm / 25) * 60);
+      applyRealDistanceToRoute(r, fallbackKm, fallbackDur);
+    }
     if (!preserveView) S.map.fitBounds(L.latLngBounds(ll), { padding: [35, 35] });
     applyRouteLayerVisibility();
   } finally {
@@ -6284,11 +7338,11 @@ async function drawAllRoutes({ preserveView = false } = {}) {
 
   const allBtn = document.getElementById('btnViewAllRoutes');
   if (allBtn) {
-    allBtn.className = 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-brand-600 text-white ring-2 ring-brand-400 shadow-sm transition cursor-pointer';
+    allBtn.className = 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-[#EA580C] text-white shadow-xs transition cursor-pointer';
   }
   const mapBarBtn = document.getElementById('btnViewAllRoutesMapBar');
   if (mapBarBtn) {
-    mapBarBtn.className = 'inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-brand-600 text-white ring-2 ring-brand-400 shadow-sm transition cursor-pointer';
+    mapBarBtn.className = 'w-full flex items-center justify-center gap-2 py-1.5 px-2.5 rounded-lg border border-orange-500 bg-orange-50 text-orange-700 dark:bg-orange-950/60 dark:text-orange-300 text-xs font-bold shadow-xs transition cursor-pointer';
   }
 
   // Desmarcar selección individual en tarjetas
@@ -6437,7 +7491,11 @@ async function drawAllRoutes({ preserveView = false } = {}) {
 
     try {
       const pts = allStops.map(x => `${x.lng},${x.lat}`).join(';');
-      const res = await fetch(OSRM + pts + '?overview=full&geometries=geojson');
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 4500);
+      const res = await fetch(OSRM + pts + '?overview=full&geometries=geojson', { signal: controller.signal });
+      clearTimeout(timeoutId);
+      if (!res.ok) throw new Error('OSRM status ' + res.status);
       const j = await res.json();
       if (j.routes && j.routes[0]) {
         const ll = j.routes[0].geometry.coordinates.map(x => [x[1], x[0]]);
@@ -6452,6 +7510,11 @@ async function drawAllRoutes({ preserveView = false } = {}) {
     } catch (e) {
       const ll = allStops.map(x => [x.lat, x.lng]);
       L.polyline(ll, { color: r.color, weight: 3.5, dashArray: '6,6', opacity: 0.75 }).addTo(S.routeLayer);
+      if (!r.realKm) {
+        const fallbackKm = dist(st, returnDep);
+        const fallbackDur = Math.round((fallbackKm / 25) * 60);
+        applyRealDistanceToRoute(r, fallbackKm, fallbackDur);
+      }
     }
   }));
 
@@ -6609,11 +7672,19 @@ document.getElementById('xlsxFull').onclick = () => {
 };
 
 // Modo Oscuro
-document.getElementById('darkBtn').onclick = () => {
-  const isDark = document.documentElement.classList.toggle('dark');
-  document.getElementById('darkBtn').textContent = isDark ? '☀️' : '🌙';
-  updateLayerButtonsUI(currentMapLayer);
-};
+const darkBtnEl = document.getElementById('darkBtn');
+if (darkBtnEl) {
+  // Sync icon on startup
+  darkBtnEl.textContent = document.documentElement.classList.contains('dark') ? '☀️' : '🌙';
+  darkBtnEl.onclick = () => {
+    const isDark = document.documentElement.classList.toggle('dark');
+    darkBtnEl.textContent = isDark ? '☀️' : '🌙';
+    try {
+      localStorage.theme = isDark ? 'dark' : 'light';
+    } catch (e) {}
+    updateLayerButtonsUI(currentMapLayer);
+  };
+}
 
 // Descargar el archivo HTML completo de la aplicación
 const downloadHtmlBtn = document.getElementById('downloadHtmlBtn');
@@ -6645,23 +7716,21 @@ const exportBtn = document.getElementById('exportBtn');
 const exportMenu = document.getElementById('exportMenu');
 
 if (exportBtn && exportMenu) {
+  const exportChevron = document.getElementById('exportChevron');
   exportBtn.onclick = (e) => {
     e.stopPropagation();
-    exportMenu.classList.toggle('hidden');
+    const isHidden = exportMenu.classList.toggle('hidden');
+    if (exportChevron) {
+      exportChevron.style.transform = isHidden ? 'rotate(0deg)' : 'rotate(180deg)';
+    }
   };
 
-  // Cerrar al hacer clic en cualquiera de las opciones del menú (Excel, PDF, CSV, etc.)
+  // Cerrar al hacer clic en cualquiera de las opciones del menú
   exportMenu.querySelectorAll('button, a').forEach(item => {
     item.addEventListener('click', () => {
       exportMenu.classList.add('hidden');
+      if (exportChevron) exportChevron.style.transform = 'rotate(0deg)';
     });
-  });
-
-  // Cerrar al hacer clic fuera del menú en cualquier parte de la pantalla
-  document.addEventListener('click', (e) => {
-    if (!exportMenu.contains(e.target) && !exportBtn.contains(e.target)) {
-      exportMenu.classList.add('hidden');
-    }
   });
 }
 
@@ -7011,6 +8080,306 @@ updateDistModeUI();
 updatePinSizeModeUI(S.pinSize || 'micro');
 updateRouteViewStyleUI(S.routeViewStyle);
 initClientSearchListeners();
+
+
+/**
+ * Inyecta un conjunto realista de 22 entregas de prueba en Bogotá y Sabana
+ * para visualizar inmediatamente el Workspace PORTLINE con rutas y mapa.
+ */
+function loadDemoData() {
+  const demoPoints = [
+    // Zona Sabana Occidente (Mosquera / Funza / Facatativá)
+    { id: 101, cli: "Muebles & Diseños SAS", dir: "Calle 10 # 4-32, Mosquera", barrio: "Centro", ciudad: "MOSQUERA", lat: 4.7058, lng: -74.2302, vol: 1.4, prod: "Comedor 6 Puestos Praga" },
+    { id: 102, cli: "Almacén La Sabana", dir: "Cra 5 # 12-40, Mosquera", barrio: "Serrezuela", ciudad: "MOSQUERA", lat: 4.7092, lng: -74.2335, vol: 1.2, prod: "Sofá Cama Dubái" },
+    { id: 103, cli: "Distribuidora Funza", dir: "Calle 15 # 9-18, Funza", barrio: "Solares", ciudad: "FUNZA", lat: 4.7165, lng: -74.2115, vol: 1.8, prod: "Alcoba Queen Venecia" },
+    { id: 104, cli: "Hogar y Estilo", dir: "Cra 12 # 11-05, Funza", barrio: "Centro", ciudad: "FUNZA", lat: 4.7198, lng: -74.2148, vol: 1.3, prod: "Poltrona Reclinable" },
+    { id: 105, cli: "Inversiones Madrid", dir: "Calle 7 # 6-50, Madrid", barrio: "San José", ciudad: "MADRID", lat: 4.7328, lng: -74.2638, vol: 1.5, prod: "Mesa Centro Mármol" },
+    { id: 106, cli: "Comercializadora Facatativá", dir: "Cra 3 # 8-22, Facatativá", barrio: "Centro", ciudad: "FACATATIVA", lat: 4.8142, lng: -74.3541, vol: 2.1, prod: "Centro Entretenimiento" },
+    { id: 107, cli: "Decoraciones Occidente", dir: "Calle 8 # 5-14, Mosquera", barrio: "Porvenir", ciudad: "MOSQUERA", lat: 4.7031, lng: -74.2280, vol: 1.1, prod: "Espejo Decorativo Led" },
+
+    // Zona Bogotá Norte (Suba / Usaquén / Colina)
+    { id: 201, cli: "Claudia Patricia Rincón", dir: "Cra 58 # 146-20", barrio: "Colina Campestre", ciudad: "BOGOTA", lat: 4.7295, lng: -74.0625, vol: 1.6, prod: "Juego Sala Modular" },
+    { id: 202, cli: "Mauricio Restrepo", dir: "Calle 152 # 54-30", barrio: "Mazurén", ciudad: "BOGOTA", lat: 4.7382, lng: -74.0514, vol: 1.3, prod: "Escritorio Ergonómico" },
+    { id: 203, cli: "Andrés Felipe Gómez", dir: "Cra 19 # 140-15", barrio: "Cedritos", ciudad: "BOGOTA", lat: 4.7212, lng: -74.0328, vol: 1.4, prod: "Cama King Ortopédica" },
+    { id: 204, cli: "Diana Marcela Torres", dir: "Cra 7 # 120-45", barrio: "Santa Bárbara", ciudad: "BOGOTA", lat: 4.6985, lng: -74.0354, vol: 1.7, prod: "Aparador Buffet Nórdico" },
+    { id: 205, cli: "Guillermo Pardo", dir: "Calle 98 # 14-22", barrio: "Chicó Norte", ciudad: "BOGOTA", lat: 4.6830, lng: -74.0490, vol: 1.2, prod: "Sillón Lectura Velvet" },
+    { id: 206, cli: "Esperanza Ortiz", dir: "Cra 91 # 139-40", barrio: "Suba Rincón", ciudad: "BOGOTA", lat: 4.7435, lng: -74.0952, vol: 1.5, prod: "Comedor 4 Puestos" },
+    { id: 207, cli: "Julián David Castro", dir: "Calle 145 # 103-12", barrio: "Suba Pinar", ciudad: "BOGOTA", lat: 4.7508, lng: -74.0885, vol: 1.1, prod: "Mueble Bar Esquinero" },
+    { id: 208, cli: "Mariana Silva", dir: "Cra 115 # 152-30", barrio: "Suba Fontanar", ciudad: "BOGOTA", lat: 4.7590, lng: -74.0995, vol: 1.3, prod: "Cómoda 6 Cajones" },
+
+    // Zona Bogotá Centro-Occidente (Engativá / Fontibón / Teusaquillo)
+    { id: 301, cli: "Hernán Morales", dir: "Calle 80 # 73A-40", barrio: "Minuto de Dios", ciudad: "BOGOTA", lat: 4.7015, lng: -74.0882, vol: 1.5, prod: "Sofá 3 Puestos Gris" },
+    { id: 302, cli: "Paula Andrea Vargas", dir: "Cra 94 # 70-15", barrio: "Quirigua", ciudad: "BOGOTA", lat: 4.7062, lng: -74.0991, vol: 1.2, prod: "Biblioteca Metálica" },
+    { id: 303, cli: "Fernando Santos", dir: "Calle 68 # 110-25", barrio: "Engativá Centro", ciudad: "BOGOTA", lat: 4.7105, lng: -74.1205, vol: 1.4, prod: "Cama Semidoble" },
+    { id: 304, cli: "Carolina Mendoza", dir: "Av Esperanza # 75-30", barrio: "Modelia", ciudad: "BOGOTA", lat: 4.6652, lng: -74.1184, vol: 1.6, prod: "Juego Comedor Cristal" },
+    { id: 305, cli: "Víctor Manuel Rojas", dir: "Calle 24 # 85A-10", barrio: "Fontibón Centro", ciudad: "BOGOTA", lat: 4.6725, lng: -74.1292, vol: 1.3, prod: "Poltrona Reclinomatic" },
+    { id: 306, cli: "Tatiana Beltrán", dir: "Cra 28 # 45-12", barrio: "Galerías", ciudad: "BOGOTA", lat: 4.6415, lng: -74.0722, vol: 1.5, prod: "Sofá Cama Lino" },
+    { id: 307, cli: "Santiago Echeverry", dir: "Calle 53 # 19-35", barrio: "Teusaquillo", ciudad: "BOGOTA", lat: 4.6390, lng: -74.0710, vol: 1.2, prod: "Mesa TV Escandinava" }
+  ];
+
+  // Construir destinos con formato canónico de RutasJamar
+  S.destinations = demoPoints.map((pt, index) => {
+    return {
+      id: `DEST-${pt.id}`,
+      direccion: pt.dir,
+      ciudad: pt.ciudad,
+      barrio: pt.barrio,
+      vol: pt.vol,
+      items: 1,
+      pedidos: 1,
+      geocoded: true,
+      tipoPunto: 'cliente',
+      lat: pt.lat,
+      lng: pt.lng,
+      status: 'OK',
+      accuracy: 'HIGH',
+      provider: 'DEMO',
+      cliente: pt.cli,
+      cedula: `CC-${10000000 + pt.id}`,
+      telefono: `310${2000000 + pt.id}`,
+      orders: [
+        {
+          id: `PED-${pt.id}`,
+          cliente: pt.cli,
+          vol: pt.vol,
+          items: 1,
+          prod: pt.prod,
+          direccion: pt.dir,
+          barrio: pt.barrio,
+          ciudad: pt.ciudad
+        }
+      ]
+    };
+  });
+
+  S.orders = {};
+  S.destinations.forEach(d => {
+    if (d.orders && d.orders[0]) {
+      S.orders[d.orders[0].id] = d.orders[0];
+    }
+  });
+
+  const totalVol = S.destinations.reduce((acc, d) => acc + (d.vol || 0), 0);
+  S.stats = {
+    rows: demoPoints.length,
+    orders: demoPoints.length,
+    destinations: demoPoints.length,
+    cityExcluded: 0,
+    freightExcluded: 0,
+    cendisExcluded: 0,
+    branchHomologated: 0,
+    corrected: {},
+    cities: { "BOGOTA": 15, "MOSQUERA": 3, "FUNZA": 2, "MADRID": 1, "FACATATIVA": 1 }
+  };
+
+  // Actualizar contadores visuales KPI
+  const statDestEl = document.querySelector('#statDest div');
+  if (statDestEl) statDestEl.textContent = S.destinations.length;
+  const statPedEl = document.querySelector('#statPedidos div');
+  if (statPedEl) statPedEl.textContent = S.destinations.length;
+  const statExEl = document.querySelector('#statEx div');
+  if (statExEl) statExEl.textContent = '0';
+
+  // Ocultar bienvenida y generar rutas
+  const welcomeArea = document.getElementById('welcomeUploadArea');
+  if (welcomeArea) welcomeArea.classList.add('hidden');
+
+  generate();
+
+  toast(`✨ Rutas generadas exitosamente con ${S.destinations.length} entregas de prueba`, 'success');
+}
+
+// Enlazar botón demo
+const demoBtn = document.getElementById('btnLoadDemoData');
+if (demoBtn) {
+  demoBtn.onclick = loadDemoData;
+}
+
+
+
+// =========================================================================
+// MÓDULO DE AUTENTICACIÓN SEGURA (Credenciales Ocultas mediante Hash SHA-256)
+// =========================================================================
+const AUTH_CONFIG = {
+  VALID_USER_HASHES: [
+    'f9ccd79a0dd81ac1350e821257dab0e95ba26f583852321572ea71fa47847227',
+    '839a15a8f29abaf4b8432a2eb3539f1ee066b3ac009c48a9cab2b467edabfdb3',
+    '72c2c56bfd04dc46de994dfcd6acd1083914f7b8142a448773553ed971b149f4',
+    'b203a089cc8c5ce98f960dd1b3ccaa2ebf9c8534ed7b3a8008402991326e0b8d',
+    (window.__APP_CONFIG__ && window.__APP_CONFIG__.AUTH_USER_HASH)
+  ].filter(Boolean),
+
+  VALID_PASS_HASHES: [
+    'c6c2f79d92bbfcb8caf4f430f59ec0fe4eaec0c91185a414beab55b98541f0f1',
+    '963403f58d280b3b3114d99c603f75378f579b8c4f6b6cf71d0e28cbeeda6c87',
+    '28a0821c2eaa8e5046784ce999867d51eb169f037ba5b69f8aa1059e10b96bad',
+    '6d601def2b3f899dc2663b82e7d4f0e86a6fa252b262c73bf62a0bb43997f9c5',
+    '0a805c41cd5b53229fe2604eac0e55cbabe006b44a79f774acea42d97b32b749',
+    '5702867c739e3c9944f3ea0bfa78231770ba738e6cb0dcb5810510a869e46958',
+    '68d95f69ba63c4a9910ffdeacffbf929ee90d93ec292dad80dd46cfd78fc8ffc',
+    'e30de02933f30041ab4b1834a5f5e4f84563275162f6c5d962e48856e4234a05',
+    (window.__APP_CONFIG__ && window.__APP_CONFIG__.AUTH_PASS_HASH)
+  ].filter(Boolean)
+};
+
+async function computeSha256(str) {
+  if (!str) return '';
+  const enc = new TextEncoder().encode(str);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', enc);
+  return Array.from(new Uint8Array(hashBuffer))
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('');
+}
+
+async function handleLoginSubmit() {
+  const userInput = document.getElementById('loginUserInput');
+  const passInput = document.getElementById('loginPassInput');
+  const errorBox = document.getElementById('loginErrorBox');
+  const errorMsg = document.getElementById('loginErrorMsg');
+  const rememberCheck = document.getElementById('loginRememberCheck');
+
+  if (!userInput || !passInput) return;
+
+  const enteredUser = userInput.value.trim();
+  const enteredPass = passInput.value.trim();
+
+  if (!enteredUser || !enteredPass) {
+    if (errorBox && errorMsg) {
+      errorMsg.textContent = 'Por favor ingrese su usuario y contraseña.';
+      errorBox.classList.remove('hidden');
+    }
+    return;
+  }
+
+  const [uHash, uHashLower, pHash] = await Promise.all([
+    computeSha256(enteredUser),
+    computeSha256(enteredUser.toLowerCase()),
+    computeSha256(enteredPass)
+  ]);
+
+  const isValidUser = AUTH_CONFIG.VALID_USER_HASHES.includes(uHash) || 
+                      AUTH_CONFIG.VALID_USER_HASHES.includes(uHashLower);
+  const isValidPass = AUTH_CONFIG.VALID_PASS_HASHES.includes(pHash);
+
+  if (isValidUser && isValidPass) {
+    if (errorBox) errorBox.classList.add('hidden');
+    
+    // Sesión autorizada
+    sessionStorage.setItem('rutasjamar_auth_session', 'authenticated');
+    if (rememberCheck && rememberCheck.checked) {
+      localStorage.setItem('rutasjamar_auth_remember', 'authenticated');
+    }
+
+    showAppView();
+    toast('Sesión iniciada correctamente. Bienvenido al Despacho Jamar.', 'success');
+  } else {
+    if (errorBox && errorMsg) {
+      errorMsg.textContent = 'Usuario o contraseña incorrectos. Verifique sus datos.';
+      errorBox.classList.remove('hidden');
+    }
+  }
+}
+
+function checkAuthStatus() {
+  const isSessionAuth = sessionStorage.getItem('rutasjamar_auth_session') === 'authenticated';
+  const isRememberAuth = localStorage.getItem('rutasjamar_auth_remember') === 'authenticated';
+  const isAuth = isSessionAuth || isRememberAuth;
+  const currentPath = window.location.pathname.toLowerCase();
+
+  if (isAuth) {
+    showAppView(false);
+    if (currentPath !== '/home') {
+      window.history.replaceState({ page: 'home' }, '', '/home');
+    }
+  } else {
+    showLoginView(false);
+    if (currentPath !== '/login' && currentPath !== '/longin') {
+      window.history.replaceState({ page: 'login' }, '', '/login');
+    }
+  }
+}
+
+function showAppView(updateHistory = true) {
+  const loginView = document.getElementById('loginView');
+  const appView = document.getElementById('appView');
+  if (loginView) loginView.classList.add('hidden');
+  if (appView) appView.classList.remove('hidden');
+
+  if (updateHistory && window.location.pathname !== '/home') {
+    window.history.pushState({ page: 'home' }, '', '/home');
+  }
+
+  setTimeout(() => {
+    if (S.map) S.map.invalidateSize();
+  }, 250);
+}
+
+function showLoginView(updateHistory = true) {
+  const loginView = document.getElementById('loginView');
+  const appView = document.getElementById('appView');
+  if (appView) appView.classList.add('hidden');
+  if (loginView) loginView.classList.remove('hidden');
+  const passInput = document.getElementById('loginPassInput');
+  if (passInput) passInput.value = '';
+
+  if (updateHistory && window.location.pathname !== '/login') {
+    window.history.pushState({ page: 'login' }, '', '/login');
+  }
+}
+
+function logoutSession() {
+  sessionStorage.removeItem('rutasjamar_auth_session');
+  localStorage.removeItem('rutasjamar_auth_remember');
+  showLoginView(true);
+  toast('Sesión cerrada correctamente.', 'info');
+}
+
+function toggleLoginPassVisibility() {
+  const passInput = document.getElementById('loginPassInput');
+  const eyeIcon = document.getElementById('loginEyeIcon');
+  if (!passInput || !eyeIcon) return;
+  const isPass = passInput.type === 'password';
+  passInput.type = isPass ? 'text' : 'password';
+  if (isPass) {
+    eyeIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18"></path>';
+  } else {
+    eyeIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>';
+  }
+}
+
+// Escuchar eventos de navegación Atrás / Adelante del navegador
+window.addEventListener('popstate', (e) => {
+  const isSessionAuth = sessionStorage.getItem('rutasjamar_auth_session') === 'authenticated';
+  const isRememberAuth = localStorage.getItem('rutasjamar_auth_remember') === 'authenticated';
+  const isAuth = isSessionAuth || isRememberAuth;
+  const path = window.location.pathname.toLowerCase();
+
+  if (path === '/home') {
+    if (isAuth) {
+      showAppView(false);
+    } else {
+      window.history.replaceState({ page: 'login' }, '', '/login');
+      showLoginView(false);
+    }
+  } else if (path === '/login' || path === '/longin') {
+    if (!isAuth) {
+      showLoginView(false);
+    } else {
+      window.history.replaceState({ page: 'home' }, '', '/home');
+      showAppView(false);
+    }
+  } else {
+    if (isAuth) {
+      showAppView(false);
+      window.history.replaceState({ page: 'home' }, '', '/home');
+    } else {
+      showLoginView(false);
+      window.history.replaceState({ page: 'login' }, '', '/login');
+    }
+  }
+});
+
+checkAuthStatus();
 </script>
 </body>
 </html>

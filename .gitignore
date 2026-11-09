@@ -1,0 +1,34 @@
+# Dependencias y artefactos de compilación
+node_modules/
+build/
+dist/
+coverage/
+
+# Variables de entorno y secretos (NUNCA subir a GitHub)
+.env
+.env.*
+*.local
+!.env.example
+
+# Carpetas internas de plataforma y despliegue
+.aistudio/
+.vercel/
+.gemini/
+
+# Bases de datos operativas y hojas de cálculo con datos sensibles de clientes (PII)
+*.xlsx
+*.xls
+*.csv
+*.pdf
+
+# Archivos de sistema, editores y registros
+.DS_Store
+Thumbs.db
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
