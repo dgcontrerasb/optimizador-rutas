@@ -4,11 +4,20 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <script>
-// Redirección Instantánea SPA: Garantiza que cualquier entrada sin sesión activa vaya directo a /login
+// Redirección Instantánea SPA & Control de Inactividad (10 minutos)
 (function() {
   try {
     var isAuth = sessionStorage.getItem('rutasjamar_auth_session') === 'authenticated' ||
                  localStorage.getItem('rutasjamar_auth_remember') === 'authenticated';
+    var lastAct = parseInt(sessionStorage.getItem('rutasjamar_last_activity') || '0', 10);
+    var now = Date.now();
+    // 10 minutos = 600.000 ms
+    if (isAuth && lastAct > 0 && (now - lastAct > 600000)) {
+      sessionStorage.removeItem('rutasjamar_auth_session');
+      localStorage.removeItem('rutasjamar_auth_remember');
+      sessionStorage.removeItem('rutasjamar_last_activity');
+      isAuth = false;
+    }
     var path = window.location.pathname.toLowerCase().replace(/\/+$/, '') || '/';
     if (!isAuth) {
       if (path !== '/login' && path !== '/longin') {
@@ -295,7 +304,7 @@ html:not(.dark) .lg\:col-span-3 {
   background-color: #1C2945 !important;
 }
 
-/* Legacy mapWrap removed */
+
 
 #map {
   height: 100%;
@@ -1260,6 +1269,12 @@ header > div,
           <span class="hidden sm:inline">Cargar Archivo</span>
           <span class="sm:hidden">+ Excel</span>
         </label>
+
+        <!-- Botón Cerrar Sesión (Header Desktop & Móvil) -->
+        <button id="headerLogoutBtn" type="button" onclick="logoutSession()" class="group inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl text-slate-500 hover:text-rose-600 dark:text-slate-400 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition text-xs font-semibold cursor-pointer border border-slate-200 dark:border-slate-700/80 hover:border-rose-200 dark:hover:border-rose-900/50 shadow-2xs" title="Cerrar Sesión del Despacho">
+          <svg class="w-4 h-4 text-slate-400 group-hover:text-rose-600 dark:group-hover:text-rose-400 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+          <span class="hidden md:inline">Cerrar Sesión</span>
+        </button>
       </div>
     </header>
 
@@ -8121,7 +8136,7 @@ if (btnDownloadPng) {
   btnDownloadPng.onclick = downloadMapAsPng;
 }
 
-/* downloadMapBtn orphan listener cleaned */
+
 
 window.captureMap = downloadMapAsPng;
 window.downloadMapAsPng = downloadMapAsPng;
@@ -8377,6 +8392,7 @@ async function handleLoginSubmit() {
       if (rememberCheck && rememberCheck.checked) {
         localStorage.setItem('rutasjamar_auth_remember', 'authenticated');
       }
+      resetInactivityTimer();
 
       showAppView();
       toast('Sesión iniciada correctamente. Bienvenido al Despacho Jamar.', 'success');
@@ -8508,6 +8524,9 @@ function showAppView(updateHistory = true) {
     }
   }
 
+  // Inicializar temporizador de inactividad de 10 minutos
+  resetInactivityTimer();
+
   // Inicializar vista móvil predeterminada en mapa
   if (window.innerWidth < 768 && !document.body.getAttribute('data-mobile-view')) {
     setMobileView('map');
@@ -8536,9 +8555,89 @@ function showLoginView(updateHistory = true) {
   }
 }
 
-function logoutSession() {
+// =========================================================================
+// GESTIÓN DE TIMEOUT DE INACTIVIDAD (10 MINUTOS) Y CIERRE DE SESIÓN
+// =========================================================================
+const INACTIVITY_TIMEOUT_MS = 10 * 60 * 1000; // 10 minutos exactos
+let inactivityTimer = null;
+let lastRecordedActivity = 0;
+
+function resetInactivityTimer() {
+  const isAuth = sessionStorage.getItem('rutasjamar_auth_session') === 'authenticated' ||
+                 localStorage.getItem('rutasjamar_auth_remember') === 'authenticated';
+  if (!isAuth) {
+    if (inactivityTimer) clearTimeout(inactivityTimer);
+    return;
+  }
+
+  const now = Date.now();
+  lastRecordedActivity = now;
+  try {
+    sessionStorage.setItem('rutasjamar_last_activity', String(now));
+  } catch (e) {}
+
+  if (inactivityTimer) clearTimeout(inactivityTimer);
+
+  inactivityTimer = setTimeout(() => {
+    handleInactivityTimeout();
+  }, INACTIVITY_TIMEOUT_MS);
+}
+
+function handleInactivityTimeout() {
+  const isAuth = sessionStorage.getItem('rutasjamar_auth_session') === 'authenticated' ||
+                 localStorage.getItem('rutasjamar_auth_remember') === 'authenticated';
+  if (!isAuth) return;
+
   sessionStorage.removeItem('rutasjamar_auth_session');
   localStorage.removeItem('rutasjamar_auth_remember');
+  sessionStorage.removeItem('rutasjamar_last_activity');
+
+  if (inactivityTimer) clearTimeout(inactivityTimer);
+  toggleMobileSidebar(false);
+  showLoginView(true);
+  toast('Su sesión ha finalizado automáticamente tras 10 minutos de inactividad.', 'warn');
+}
+
+function checkInactivityOnResume() {
+  const isAuth = sessionStorage.getItem('rutasjamar_auth_session') === 'authenticated' ||
+                 localStorage.getItem('rutasjamar_auth_remember') === 'authenticated';
+  if (!isAuth) return;
+
+  const lastActStr = sessionStorage.getItem('rutasjamar_last_activity');
+  if (lastActStr) {
+    const elapsed = Date.now() - parseInt(lastActStr, 10);
+    if (elapsed >= INACTIVITY_TIMEOUT_MS) {
+      handleInactivityTimeout();
+      return;
+    }
+  }
+  resetInactivityTimer();
+}
+
+// Escuchadores pasivos de interacción con throttle de 5s para máximo rendimiento
+['mousedown', 'mousemove', 'keydown', 'touchstart', 'scroll', 'click'].forEach(evtName => {
+  window.addEventListener(evtName, () => {
+    const now = Date.now();
+    if (now - lastRecordedActivity > 5000) {
+      resetInactivityTimer();
+    }
+  }, { passive: true });
+});
+
+// Comprobar inactividad al volver a enfocar la pestaña
+window.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') {
+    checkInactivityOnResume();
+  }
+});
+window.addEventListener('focus', checkInactivityOnResume);
+
+function logoutSession() {
+  if (inactivityTimer) clearTimeout(inactivityTimer);
+  sessionStorage.removeItem('rutasjamar_auth_session');
+  localStorage.removeItem('rutasjamar_auth_remember');
+  sessionStorage.removeItem('rutasjamar_last_activity');
+  toggleMobileSidebar(false);
   showLoginView(true);
   toast('Sesión cerrada correctamente.', 'info');
 }
