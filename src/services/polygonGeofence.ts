@@ -7,6 +7,7 @@ import { classifyZone, hav } from '../config/zones';
 import { draw, drawAllRoutes } from '../map/leafletMap';
 import { renderRoutes } from '../ui/routeCards';
 import { withJamarLoader } from '../ui/loader';
+import { publishRoutesToTelemetryServer } from './telemetry';
 
 declare const L: any;
 
@@ -515,6 +516,7 @@ export async function createRoutesFromPolygon(): Promise<void> {
     renderRoutes();
     drawAllRoutes();
     syncAllRoutesRealDistance();
+    publishRoutesToTelemetryServer();
     renderUnassignedPinsOnMap();
     renderPolygonToolbarUI();
     toast(`✅ ${newLassoRoutes.length} ruta(s) fijadas con el lazo. El resto de la flota fue re-zonificado.`, 'success');
@@ -568,6 +570,7 @@ export async function isolateSinglePolygon(): Promise<void> {
     renderRoutes();
     drawAllRoutes();
     syncAllRoutesRealDistance();
+    publishRoutesToTelemetryServer();
     renderUnassignedPinsOnMap();
     renderPolygonToolbarUI();
     toast('🎯 Se conservaron únicamente las rutas fijadas. Los demás clientes quedaron como pines libres.', 'success');
@@ -846,6 +849,7 @@ export function removeStopToUnassignedPool(stopId: number): void {
   renderRoutes();
   drawAllRoutes();
   syncAllRoutesRealDistance();
+  publishRoutesToTelemetryServer();
   renderUnassignedPinsOnMap();
   renderPolygonToolbarUI();
   toast(`⚪ Parada soltada al mapa como pin libre (Ruta ${fromRouteId + 1} actualizada).`, 'info');

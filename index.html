@@ -2,7 +2,11 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#14171F">
 <title>RutasJamar · Planificador de Rutas Bogotá y Alrededores</title>
 <link rel="icon" type="image/png" href="/logo.png" />
 <meta name="description" content="Planificador logístico de rutas de entrega para Bogotá y municipios cercanos con consolidación de pedidos, optimización de recorridos y visualización en mapa." />
@@ -1037,10 +1041,10 @@ body {
             </div>
 
             <!-- Botón Flotante en Móvil cuando el mapa está al 100% para volver a la Hoja de Entregas -->
-            <div id="mobileMapFloatingReturnWrap" class="hidden md:hidden absolute bottom-4 left-4 right-4 z-[1000] flex justify-center pointer-events-none">
-              <button type="button" onclick="window.setMobileDriverLayout && window.setMobileDriverLayout('split')" class="pointer-events-auto py-3 px-5 rounded-full bg-[#14171F]/95 text-white border border-white/15 shadow-2xl text-xs font-extrabold flex items-center gap-2 cursor-pointer">
+            <div id="mobileMapFloatingReturnWrap" class="hidden md:hidden absolute bottom-5 left-4 right-4 z-[1000] flex justify-center pointer-events-none">
+              <button type="button" onclick="window.setMobileDriverLayout && window.setMobileDriverLayout('list')" class="pointer-events-auto py-3 px-6 rounded-full bg-[#14171F]/95 hover:bg-black text-white border border-white/20 shadow-2xl text-xs font-extrabold flex items-center gap-2 cursor-pointer transition active:scale-95">
                 <span>📋</span>
-                <span>Mostrar Hoja de Entregas y Controles</span>
+                <span>Volver a Mis Entregas y Controles</span>
               </button>
             </div>
 

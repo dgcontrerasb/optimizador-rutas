@@ -313,24 +313,104 @@ export async function pullTelemetryFromCloud(): Promise<void> {
 
     // Si el dispositivo (como el celular del chofer) no tiene las rutas cargadas en memoria, sincronizarlas desde la nube
     if (!S.routes || !S.routes.length) {
-      const routesUrl = buildFirebaseUrl(`/rutas_activas/${today}.json`);
-      if (routesUrl) {
-        const routesRes = await fetch(routesUrl);
-        if (routesRes.ok) {
-          const cloudRoutes = await routesRes.json();
-          if (Array.isArray(cloudRoutes) && cloudRoutes.length > 0 && (!S.routes || !S.routes.length)) {
-            S.routes = cloudRoutes;
-            if (telemetryState.isDriverExclusiveMode) {
-              centerDriverAssignedRoute();
-            }
-            renderTelemetryPanelUI();
-          }
-        } else {
-          handleFirebaseResponseStatus(routesRes.status);
-        }
-      }
+      await syncActiveRoutesFromCloud(today);
     }
   } catch (_e) {}
+}
+
+export async function syncActiveRoutesFromCloud(targetDate?: string): Promise<boolean> {
+  const dateKey = targetDate || getTodayDateKey();
+  const routesUrl = buildFirebaseUrl(`/rutas_activas/${dateKey}.json`);
+  if (!routesUrl) return false;
+  try {
+    const res = await fetch(routesUrl);
+    if (!res.ok) {
+      handleFirebaseResponseStatus(res.status);
+      return false;
+    }
+    const cloudRoutes = await res.json();
+    if (Array.isArray(cloudRoutes) && cloudRoutes.length > 0) {
+      S.routes = cloudRoutes;
+
+      const welcomeArea = document.getElementById('welcomeUploadArea');
+      const resultsSec = document.getElementById('resultsSec');
+      if (welcomeArea) welcomeArea.classList.add('hidden');
+      if (resultsSec) resultsSec.classList.remove('hidden');
+      if ((window as any).initMap) (window as any).initMap();
+
+      const loaderOverlay = document.getElementById('driverRouteSyncOverlay');
+      if (loaderOverlay) loaderOverlay.remove();
+
+      if (telemetryState.isDriverExclusiveMode) {
+        centerDriverAssignedRoute();
+      }
+      renderTelemetryPanelUI();
+      renderTelemetryOnMap();
+      return true;
+    }
+    return false;
+  } catch (_e) {
+    return false;
+  }
+}
+
+export function showDriverRouteSyncLoader(dateKey: string): void {
+  let overlay = document.getElementById('driverRouteSyncOverlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'driverRouteSyncOverlay';
+    overlay.className = 'fixed inset-0 z-[99998] bg-[#0F172A] flex flex-col items-center justify-center p-6 text-center select-none';
+    document.body.appendChild(overlay);
+  }
+  overlay.innerHTML = `
+    <div class="max-w-sm w-full bg-[#1E293B] border border-orange-500/30 rounded-3xl p-6 sm:p-8 space-y-4 shadow-2xl text-center">
+      <div class="w-16 h-16 rounded-2xl bg-[#EA580C]/20 border border-[#EA580C]/30 text-[#EA580C] flex items-center justify-center text-3xl mx-auto animate-pulse">
+        🚛
+      </div>
+      <h3 class="text-white text-lg font-black">Descargando Hoja de Ruta</h3>
+      <p class="text-xs text-slate-300 leading-relaxed">
+        Sincronizando clientes y paradas de entrega con Central Jamar Cendis Siberia...
+      </p>
+      <div class="py-2.5 px-4 rounded-xl bg-slate-900/80 border border-slate-700/80 text-[11px] text-orange-400 font-semibold flex items-center justify-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-[#EA580C] animate-ping"></span>
+        <span>Conectando con la nube (${esc(dateKey)})...</span>
+      </div>
+    </div>
+  `;
+}
+
+export function updateDriverRouteSyncLoaderNotFound(dateKey: string, routeId: number): void {
+  const overlay = document.getElementById('driverRouteSyncOverlay');
+  if (!overlay) return;
+  overlay.innerHTML = `
+    <div class="max-w-sm w-full bg-[#1E293B] border border-amber-500/40 rounded-3xl p-6 sm:p-8 space-y-4 shadow-2xl text-center">
+      <div class="w-16 h-16 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center text-3xl mx-auto">
+        ⏳
+      </div>
+      <h3 class="text-white text-lg font-black">Ruta no publicada aún</h3>
+      <p class="text-xs text-slate-300 leading-relaxed">
+        Central Jamar Cendis aún no ha emitido la hoja de ruta digital para la <b>Ruta ${routeId + 1}</b> hoy (${esc(dateKey)}).
+      </p>
+      <div class="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 text-[11px] text-slate-400">
+        Pide a tu Coordinador de Despacho que haga clic en <b>Copiar Link</b> o publique las rutas.
+      </div>
+      <button type="button" onclick="window.syncActiveRoutesFromCloud && window.syncActiveRoutesFromCloud('${dateKey}')" class="w-full py-3 px-4 rounded-2xl bg-[#EA580C] hover:bg-[#D94E06] text-white font-extrabold text-xs shadow-lg shadow-orange-600/30 transition cursor-pointer flex items-center justify-center gap-2">
+        <span>🔄</span>
+        <span>Reintentar Sincronización</span>
+      </button>
+    </div>
+  `;
+}
+
+export function getGoogleMapsNavigationUrl(stop: any): string {
+  if (!stop) return 'https://maps.google.com';
+  const lat = Number(stop.lat);
+  const lng = Number(stop.lng);
+  if (Number.isFinite(lat) && Number.isFinite(lng) && (lat !== 0 || lng !== 0)) {
+    return `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=driving&dir_action=navigate`;
+  }
+  const addrClean = `${stop.direccion || ''}, ${stop.ciudad || 'Bogotá'}, Colombia`;
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(addrClean)}`;
 }
 
 export async function downloadBitacoraReport(day: string = 'hoy'): Promise<void> {
@@ -875,6 +955,10 @@ function applyMobileDriverLayoutClasses(): void {
   const centerMapSec = document.getElementById('centerMapSection');
   const rightAside = document.getElementById('rightMainAside');
   const floatingReturnWrap = document.getElementById('mobileMapFloatingReturnWrap');
+  const darkSidebar = document.getElementById('mainDarkSidebar');
+  const routesCol = document.getElementById('routesColumnPanel');
+  const coordHeader = document.getElementById('coordinatorMainHeader');
+  const driverHeader = document.getElementById('driverExclusiveHeader');
 
   if (!telemetryState.isDriverExclusiveMode) {
     if (mainContainer) mainContainer.className = 'flex-1 flex min-h-0 overflow-hidden';
@@ -884,9 +968,15 @@ function applyMobileDriverLayoutClasses(): void {
     return;
   }
 
+  // Garantizar que en modo conductor exclusivo los paneles de despacho y edición queden 100% ocultos
+  if (darkSidebar) darkSidebar.classList.add('hidden');
+  if (routesCol) routesCol.classList.add('hidden');
+  if (coordHeader) coordHeader.classList.add('hidden');
+  if (driverHeader) driverHeader.classList.remove('hidden');
+
   // En modo conductor: apilar verticalmente en móvil (flex-col) y lado a lado en escritorio (md:flex-row)
   if (mainContainer) {
-    mainContainer.className = 'flex-1 flex flex-col md:flex-row min-h-0 overflow-hidden';
+    mainContainer.className = 'flex-1 flex flex-col md:flex-row min-h-0 overflow-hidden w-full';
   }
 
   const mode = telemetryState.mobileDriverLayout;
@@ -900,10 +990,10 @@ function applyMobileDriverLayoutClasses(): void {
 
   if (mode === 'split') {
     if (centerMapSec) {
-      centerMapSec.className = 'h-[37vh] sm:h-[42vh] shrink-0 md:h-full md:flex-1 relative bg-[#F8FAFC] dark:bg-slate-900 flex flex-col min-w-0 overflow-hidden border-b md:border-b-0 border-slate-200 dark:border-slate-700';
+      centerMapSec.className = 'h-[36vh] sm:h-[40vh] shrink-0 md:h-full md:flex-1 relative bg-[#F8FAFC] dark:bg-slate-900 flex flex-col min-w-0 overflow-hidden border-b md:border-b-0 border-slate-700/80';
     }
     if (rightAside) {
-      rightAside.className = 'w-full flex-1 md:w-[375px] xl:w-[410px] md:flex-none shrink-0 bg-white dark:bg-slate-800 md:border-l border-slate-200/90 dark:border-slate-700 flex flex-col md:h-full min-h-0 overflow-hidden select-none z-20 transition-all duration-200';
+      rightAside.className = 'w-full flex-1 md:w-[380px] xl:w-[420px] md:flex-none shrink-0 bg-white dark:bg-slate-800 md:border-l border-slate-200/90 dark:border-slate-700 flex flex-col h-full min-h-0 overflow-y-auto select-none z-20 transition-all duration-200';
     }
     if (floatingReturnWrap) floatingReturnWrap.classList.add('hidden');
   } else if (mode === 'list') {
@@ -911,26 +1001,22 @@ function applyMobileDriverLayoutClasses(): void {
       centerMapSec.className = 'hidden md:flex md:flex-1 relative bg-[#F8FAFC] dark:bg-slate-900 flex-col h-full min-w-0 overflow-hidden';
     }
     if (rightAside) {
-      rightAside.className = 'w-full flex-1 md:w-[375px] xl:w-[410px] md:flex-none shrink-0 bg-white dark:bg-slate-800 md:border-l border-slate-200/90 dark:border-slate-700 flex flex-col h-full min-h-0 overflow-hidden select-none z-20 transition-all duration-200';
+      rightAside.className = 'w-full flex-1 md:w-[380px] xl:w-[420px] md:flex-none shrink-0 bg-white dark:bg-slate-800 md:border-l border-slate-200/90 dark:border-slate-700 flex flex-col h-full min-h-0 overflow-y-auto select-none z-20 transition-all duration-200';
     }
     if (floatingReturnWrap) floatingReturnWrap.classList.add('hidden');
   } else if (mode === 'map') {
     if (centerMapSec) {
-      centerMapSec.className = 'flex-1 relative bg-[#F8FAFC] dark:bg-slate-900 flex flex-col h-full min-w-0 overflow-hidden';
+      centerMapSec.className = 'w-full flex-1 relative bg-[#F8FAFC] dark:bg-slate-900 flex flex-col h-full min-w-0 overflow-hidden';
     }
     if (rightAside) {
-      rightAside.className = 'hidden md:flex md:w-[375px] xl:w-[410px] shrink-0 bg-white dark:bg-slate-800 border-l border-slate-200/90 dark:border-slate-700 flex-col h-full overflow-hidden select-none z-20 transition-all duration-200';
+      rightAside.className = 'hidden md:flex md:w-[380px] xl:w-[420px] shrink-0 bg-white dark:bg-slate-800 border-l border-slate-200/90 dark:border-slate-700 flex-col h-full overflow-hidden select-none z-20 transition-all duration-200';
     }
     if (floatingReturnWrap) floatingReturnWrap.classList.remove('hidden');
   }
 }
 
 export function centerDriverAssignedRoute(): void {
-  if (!S.routes || !S.routes.length) {
-    if ((window as any).loadLiveDemo) {
-      (window as any).loadLiveDemo();
-    }
-  }
+  if (!S.routes || !S.routes.length) return;
   const rId = telemetryState.driverSelectedRouteId;
   const routeObj = (S.routes || []).find(r => r.id === rId) || S.routes?.[0];
   if (!routeObj) return;
@@ -1039,6 +1125,7 @@ export function showDriverPinGate(routeId: number, plate: string, dateKey: strin
       const val = input.value.trim();
       const ok = verifyDriverPin(routeId, val, plate, dateKey);
       if (ok) {
+        persistDriverSession(routeId, dateKey);
         modal!.style.display = 'none';
         toast('✅ Acceso validado. Hoja de viaje desbloqueada.', 'success');
         renderTelemetryPanelUI();
@@ -1098,11 +1185,16 @@ export function enterDriverExclusiveMode(routeId?: number, lockedByUrl = false):
   // Sincronizar con los datos en vivo del camión de esta ruta (bitácora, entregas, estado)
   syncLocalDriverStateFromLiveTruck(telemetryState.driverSelectedRouteId);
 
-  // Si aún no hay rutas cargadas en memoria, cargar las rutas para que el chofer vea su mapa de inmediato
+  // Si aún no hay rutas cargadas en memoria, sincronizarlas desde la nube (Firebase)
   if (!S.routes || !S.routes.length) {
-    if ((window as any).loadLiveDemo) {
-      (window as any).loadLiveDemo();
-    }
+    const urlParams = new URLSearchParams(window.location.search);
+    const targetDate = urlParams.get('fecha') || getTodayDateKey();
+    showDriverRouteSyncLoader(targetDate);
+    syncActiveRoutesFromCloud(targetDate).then((success) => {
+      if (!success && (!S.routes || !S.routes.length)) {
+        updateDriverRouteSyncLoaderNotFound(targetDate, telemetryState.driverSelectedRouteId);
+      }
+    });
   }
 
   // 1. Ocultar el Panel Oscuro Izquierdo (#mainDarkSidebar) y el Panel de Listado de Rutas (#routesColumnPanel)
@@ -1401,10 +1493,22 @@ export function stopDriverGpsTransmission(): void {
     clearInterval(telemetryState.driverIntervalId);
     telemetryState.driverIntervalId = null;
   }
-  addDriverLogEvent('⏹️ Transmisión periódica de GPS pausada', telemetryState.driverStatus);
+
+  // Notificar inmediatamente a Central Cendis que el GPS fue detenido
+  telemetryState.driverStatus = 'detenido';
+  telemetryState.driverStatusNote = '🔴 GPS apagado por el conductor';
+  if (telemetryState.driverLastCoords) {
+    telemetryState.driverLastCoords.speedKmh = 0;
+  }
+  addDriverLogEvent('🔴 GPS apagado por el conductor', 'detenido');
+
   const payload = buildDriverTelemetrySnapshot();
+  payload.status = 'detenido';
+  payload.statusNote = '🔴 GPS apagado por el conductor';
+  payload.speedKmh = 0;
   sendTelemetryUpdate(payload);
-  toast('Transmisión GPS detenida', 'info');
+
+  toast('Transmisión GPS detenida · Central Cendis notificada', 'info');
   renderTelemetryPanelUI();
 }
 
@@ -1769,7 +1873,9 @@ export function renderTelemetryPanelUI(): void {
 
   // 2. Contadores en la vista Oficina
   const trucksList = Array.from(telemetryState.trucks.values());
-  const inRouteCount = trucksList.filter(t => t.status === 'en_ruta').length;
+  const now = Date.now();
+  const isTruckActiveGps = (t: TruckTelemetry) => (now - (t.updatedAt || 0)) <= 35000;
+  const inRouteCount = trucksList.filter(t => t.status === 'en_ruta' && isTruckActiveGps(t)).length;
   const deliveringCount = trucksList.filter(t => t.status === 'entregando').length;
 
   const elActiveCount = document.getElementById('telemetryActiveCount');
@@ -1805,6 +1911,13 @@ export function renderTelemetryPanelUI(): void {
         const isFollowing = telemetryState.followingTruckId === truckId;
 
         if (liveTruck) {
+          const isGpsStale = liveTruck.status !== 'completado' && (now - (liveTruck.updatedAt || 0)) > 35000;
+          const effectiveStatus: TruckTelemetry['status'] = isGpsStale ? 'detenido' : liveTruck.status;
+          const effectiveSpeed = isGpsStale ? 0 : Math.round(liveTruck.speedKmh || 0);
+          const effectiveNote = isGpsStale
+            ? `🔴 Sin señal GPS (hace ${formatTimeAgo(liveTruck.updatedAt)})`
+            : liveTruck.statusNote;
+
           const pct = liveTruck.totalStops > 0
             ? Math.min(100, Math.round(((liveTruck.completedStopIds?.length || 0) / liveTruck.totalStops) * 100))
             : 0;
@@ -1824,27 +1937,29 @@ export function renderTelemetryPanelUI(): void {
                     <div class="text-[11px] ${isFollowing ? 'text-slate-300' : 'text-slate-500 dark:text-slate-400'} truncate">👤 ${esc(liveTruck.driverName)}</div>
                   </div>
                 </div>
-                ${getStatusBadgeHtml(liveTruck.status)}
+                ${isGpsStale
+                  ? '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800 dark:bg-rose-950/80 dark:text-rose-300 border border-rose-300 dark:border-rose-700"><span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>🔴 Sin GPS</span>'
+                  : getStatusBadgeHtml(liveTruck.status)}
               </div>
 
-              ${liveTruck.statusNote ? `
+              ${effectiveNote ? `
                 <div class="px-2.5 py-1.5 rounded-xl text-[10px] font-semibold ${
-                  liveTruck.status === 'detenido'
+                  isGpsStale || effectiveStatus === 'detenido'
                     ? 'bg-rose-500/15 text-rose-600 dark:text-rose-300 border border-rose-500/30'
-                    : liveTruck.status === 'entregando'
+                    : effectiveStatus === 'entregando'
                       ? 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30'
-                      : liveTruck.status === 'completado'
+                      : effectiveStatus === 'completado'
                         ? 'bg-blue-500/15 text-blue-700 dark:text-blue-300 border border-blue-500/30'
                         : (isFollowing ? 'bg-white/10 text-slate-200' : 'bg-slate-100 dark:bg-slate-700/60 text-slate-600 dark:text-slate-300')
                 }">
-                  ${esc(liveTruck.statusNote)}
+                  ${esc(effectiveNote)}
                 </div>
               ` : ''}
 
               <div class="grid grid-cols-3 gap-1.5 p-2 rounded-xl ${isFollowing ? 'bg-white/10' : 'bg-slate-50 dark:bg-slate-900/50'} text-[10px]">
                 <div>
                   <span class="text-slate-400 block">Velocidad</span>
-                  <strong class="${isFollowing ? 'text-white' : 'text-slate-800 dark:text-slate-200'} font-bold">${Math.round(liveTruck.speedKmh || 0)} km/h</strong>
+                  <strong class="${isFollowing ? 'text-white' : 'text-slate-800 dark:text-slate-200'} font-bold">${effectiveSpeed} km/h</strong>
                 </div>
                 <div>
                   <span class="text-slate-400 block">Precisión</span>
@@ -2232,7 +2347,7 @@ export function renderTelemetryPanelUI(): void {
           </div>
           ${nextStop ? `
             <div class="grid grid-cols-2 gap-1.5">
-              <a href="https://www.google.com/maps/dir/?api=1&destination=${nextStop.lat},${nextStop.lng}&travelmode=driving&dir_action=navigate" target="_blank" rel="noopener noreferrer" class="min-h-[40px] py-2 px-2.5 rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-50 text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-700 font-bold text-[11px] flex items-center justify-center gap-1 transition">
+              <a href="${getGoogleMapsNavigationUrl(nextStop)}" target="_blank" rel="noopener noreferrer" class="min-h-[44px] py-2 px-2.5 rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-50 text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-700 font-extrabold text-[11px] flex items-center justify-center gap-1.5 transition shadow-xs">
                 <span>🧭</span><span>Navegar GPS</span>
               </a>
               <button type="button" onclick="window.setDriverOperationalStatus('entregando')" class="min-h-[40px] py-2 px-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-[11px] flex items-center justify-center gap-1 transition${lockSuffix}">
@@ -2349,8 +2464,8 @@ export function renderTelemetryPanelUI(): void {
               <div class="text-[10px] text-slate-500 dark:text-slate-400 truncate pl-6 mt-0.5">📍 ${esc(d.direccion)} (${esc(d.ciudad)})</div>
             </div>
             <div class="flex items-center gap-1.5 shrink-0">
-              <a href="https://www.google.com/maps/dir/?api=1&destination=${d.lat},${d.lng}&travelmode=driving&dir_action=navigate" target="_blank" rel="noopener noreferrer" class="min-h-[36px] min-w-[36px] p-1.5 rounded-lg bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 text-slate-700 dark:text-slate-200 text-xs flex items-center justify-center" title="Navegar con Google Maps">
-                🧭
+              <a href="${getGoogleMapsNavigationUrl(d)}" target="_blank" rel="noopener noreferrer" class="min-h-[40px] px-2.5 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 text-slate-700 dark:text-slate-200 text-xs font-bold flex items-center justify-center gap-1" title="Navegar con Google Maps hacia este cliente">
+                <span>🧭</span><span class="hidden sm:inline">GPS</span>
               </a>
               <button type="button" onclick="window.toggleDriverStopCompleted(${d.id})" class="min-h-[36px] px-2.5 py-1.5 rounded-lg text-[10px] font-extrabold ${
                 done
@@ -2622,5 +2737,17 @@ if (typeof window !== 'undefined') {
   (window as any).publishRoutesToTelemetryServer = publishRoutesToTelemetryServer;
   (window as any).downloadBitacoraReport = downloadBitacoraReport;
   (window as any).pullTelemetryFromCloud = pullTelemetryFromCloud;
+  (window as any).syncActiveRoutesFromCloud = syncActiveRoutesFromCloud;
+  (window as any).getGoogleMapsNavigationUrl = getGoogleMapsNavigationUrl;
   (window as any).getFirebaseDatabaseUrl = getFirebaseDatabaseUrl;
+
+  window.addEventListener('beforeunload', () => {
+    if (telemetryState.isDriverExclusiveMode && telemetryState.driverIsTransmitting) {
+      const payload = buildDriverTelemetrySnapshot();
+      payload.status = 'detenido';
+      payload.statusNote = '🔴 Conductor cerró navegador / desconectó terminal';
+      payload.speedKmh = 0;
+      sendTelemetryUpdate(payload);
+    }
+  });
 }
