@@ -315,7 +315,8 @@ export function resetPasswordWithMasterKey(
 
 export function openWhatsAppRecovery(accountLabel: string): void {
   try {
-    const targetPhone = atob(ENCODED_WA_TARGET);
+    const envPhone = (import.meta as any).env?.VITE_RECOVERY_WHATSAPP;
+    const targetPhone = envPhone ? String(envPhone).replace(/\D/g, '') : atob(ENCODED_WA_TARGET);
     const reqCode = Math.floor(1000 + Math.random() * 9000);
     const msg = `Hola, solicito el restablecimiento de clave para el usuario [${accountLabel}] en el optimizador Rutas Jamar (Cendis Siberia). Código de seguridad: #REC-${reqCode}`;
     const url = `https://wa.me/${targetPhone}?text=${encodeURIComponent(msg)}`;
