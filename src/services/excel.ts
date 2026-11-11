@@ -1,6 +1,6 @@
 import { CITIES, CORRECTIONS } from '../config/constants';
 import { ColumnMapping, OrderItem, PhysicalDestination, PreprocessStats } from '../types';
-import { normalizeAddress, getJamarBranchAddress, normAddress } from './geocoding';
+import { normalizeAddress, getJamarBranchAddress } from './geocoding';
 import { classifyZone, normalizeInsensitive, normText } from '../config/zones';
 import { esc, toast } from '../state/store';
 

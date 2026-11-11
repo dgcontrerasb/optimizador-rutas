@@ -1026,6 +1026,9 @@ body {
         <!-- Contenedor del Mapa Interactivo (#resultsSec -> #mapWrap -> #map) -->
         <div id="resultsSec" class="hidden flex-1 w-full h-full relative">
           <div id="mapWrap" class="w-full h-full relative bg-slate-100 dark:bg-slate-800 overflow-hidden">
+            <!-- Barra Flotante de Polígonos / Lazo de Geocerca sobre el Mapa -->
+            <div id="polygonGeofenceMapBar" class="map-ui-overlay absolute top-3 left-12 right-40 z-[1000] flex items-center gap-1.5 flex-wrap pointer-events-none"></div>
+
             <!-- Píldora discreta de Ruta Activa sobre la esquina superior derecha del mapa -->
             <div class="map-ui-overlay map-floating-controls absolute top-3 right-3 z-[1000] flex items-center gap-2 pointer-events-none">
               <span id="mapTitle" class="pointer-events-auto inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white/95 dark:bg-slate-800/95 backdrop-blur-md border border-slate-200 dark:border-slate-700 shadow-md text-xs font-bold text-slate-800 dark:text-white">
@@ -1082,6 +1085,9 @@ body {
              PESTAÑA 1: CONTROL DE MAPA & FLOTA (Diseño vertical limpio original)
              =============================================================== -->
         <div id="panelMapControls" class="flex-1 overflow-y-auto p-4 space-y-4">
+          <!-- 0. SELECCIÓN POR LAZO -->
+          <div id="sidebarPolygonControlBox"></div>
+
           <!-- 1. MARCADORES -->
           <div class="space-y-1.5">
             <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400">MARCADORES</div>

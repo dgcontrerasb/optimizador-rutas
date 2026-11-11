@@ -1,5 +1,5 @@
 import { DEPOT, OSRM_URL } from '../config/constants';
-import { DeliveryRoute, PhysicalDestination } from '../types';
+import { PhysicalDestination } from '../types';
 import { S } from '../state/store';
 
 export function isReturnDepot(): boolean {

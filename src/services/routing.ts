@@ -1,6 +1,6 @@
 import { COMFORT, DEPOT, LOGISTICS, MAX_DEST, MAX_VOL, MIN_DEST, MIN_VOL, ROAD_CIRCUITY_FACTOR } from '../config/constants';
-import { DeliveryRoute, PhysicalDestination, RouteOptionAlternative } from '../types';
-import { S, toast } from '../state/store';
+import { PhysicalDestination } from '../types';
+import { S } from '../state/store';
 import { classifyZone, hav, isZoneCompatible, normText } from '../config/zones';
 
 export function roadDistance(a: number, b: number, c: number, d: number): number {

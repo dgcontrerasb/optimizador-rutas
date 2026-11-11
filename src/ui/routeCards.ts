@@ -1,5 +1,5 @@
 import { MAX_DEST, MAX_VOL, MIN_DEST, MIN_VOL } from '../config/constants';
-import { DeliveryRoute, PhysicalDestination } from '../types';
+import { PhysicalDestination } from '../types';
 import { esc, S, toast } from '../state/store';
 import { active, alternatives, avgDistToCluster, clusterStrictZones, deduplicateFleetStops, isReturnDepot, vol } from '../services/routing';
 import { buildGoogleMapsUrl, getRouteEffectiveKm, syncAllRoutesRealDistance } from '../services/osrm';
@@ -114,7 +114,14 @@ export function renderRoutes(): void {
             <input type="checkbox" class="route-checkbox w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-brand-600 focus:ring-brand-500 cursor-pointer shrink-0" data-r="${r.id}" ${isChecked ? 'checked' : ''} title="Mostrar u ocultar Ruta ${r.id + 1} en el mapa">
             <span class="w-3.5 h-3.5 rounded-full shrink-0" style="background:${r.color}"></span>
             <div>
-              <b class="text-sm font-bold text-slate-900 dark:text-white">Ruta ${r.id + 1}</b>
+              <div class="flex items-center gap-1.5">
+                <b class="text-sm font-bold text-slate-900 dark:text-white">Ruta ${r.id + 1}</b>
+                ${r.lockedByLasso ? `
+                  <button type="button" onclick="window.toggleRouteLassoLock && window.toggleRouteLassoLock(${r.id}, event)" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-orange-50 text-[#EA580C] border border-orange-200/90 hover:bg-orange-100 transition cursor-pointer inline-flex items-center gap-1" title="Ruta blindada por lazo: sus puntos se omiten al re-armar el resto con nuevos polígonos. Haz clic si deseas desbloquearla.">
+                    <span>🔒 Fijada</span>
+                  </button>
+                ` : ''}
+              </div>
               <div class="mt-0.5 flex items-center gap-1.5 flex-wrap">
                 ${getZoneBadge(dominantZone)}
                 ${isUnderMin ? '<span class="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-300 border border-amber-300 dark:border-amber-800">⚠️ Bajo mínimo</span>' : ''}
@@ -596,67 +603,82 @@ export function closeReassignModal(): void {
 export function move(id: number, to: number): boolean {
   id = +id;
   to = +to;
-  const dest = S.routes ? S.routes.find(r => r.id === to) : null;
-  if (!dest) return false;
+  let from: any = null;
+  (S.routes || []).forEach(r => {
+    if (active(r).some((x: any) => x.id === id)) from = r;
+  });
 
-  const fromRoutes = (S.routes || []).filter((r: any) => (r.alts?.a || []).some((s: any) => s.id === id) || (r.alts?.b || []).some((s: any) => s.id === id));
-  if (!fromRoutes.length) {
-    toast('No se encontró la parada en ninguna ruta', 'error');
-    return false;
-  }
-  const from = fromRoutes[0];
-  if (from.id === dest.id) return false;
+  const target = (S.routes || []).find(r => r.id === to);
+  if (!target) return false;
+  if (from && from.id === target.id) return false;
 
-  const d = S.destinations.find(x => x.id === id) || (from.alts?.a || []).find((x: any) => x.id === id) || (from.alts?.b || []).find((x: any) => x.id === id);
-  if (!d) return false;
+  const item = from
+    ? active(from).find((x: any) => x.id === id)
+    : (S.destinations || []).find((x: any) => x.id === id);
+  if (!item) return false;
 
-  const targetStops = (active(dest) || []).filter(s => s.id !== id);
+  const targetStops = (active(target) || []).filter(s => s.id !== id);
 
-  if (targetStops.length + 1 > MAX_DEST || vol(targetStops) + d.vol > MAX_VOL) {
+  if (targetStops.length + 1 > MAX_DEST || vol(targetStops) + item.vol > MAX_VOL) {
     toast(`No se puede mover: superaría la capacidad máxima (${MAX_DEST} clientes o ${MAX_VOL} m³)`, 'error');
     return false;
   }
 
-  if (!isZoneCompatible(targetStops, d)) {
-    toast(`Aviso de zonificación: ${d.cliente} cruza sector hacia Ruta ${dest.id + 1}`, 'warn');
+  if (!isZoneCompatible(targetStops, item)) {
+    toast(`Aviso de zonificación: ${item.cliente} cruza sector hacia Ruta ${target.id + 1}`, 'warn');
   }
 
-  S.routes.forEach((r: any) => {
-    if (r.id !== dest.id && r.alts) {
-      let changed = false;
-      if (Array.isArray(r.alts.a) && r.alts.a.some((s: any) => s.id === id)) {
-        r.alts.a = r.alts.a.filter((s: any) => s.id !== id);
-        changed = true;
+  // Si proviene de una ruta activa, removerlo
+  if (from) {
+    (S.routes || []).forEach((r: any) => {
+      if (r.id !== target.id && r.alts) {
+        let changed = false;
+        if (Array.isArray(r.alts.a) && r.alts.a.some((s: any) => s.id === id)) {
+          r.alts.a = r.alts.a.filter((s: any) => s.id !== id);
+          changed = true;
+        }
+        if (Array.isArray(r.alts.b) && r.alts.b.some((s: any) => s.id === id)) {
+          r.alts.b = r.alts.b.filter((s: any) => s.id !== id);
+          changed = true;
+        }
+        if (changed) {
+          r.alts = alternatives(active(r));
+          delete r._osrmCache;
+        }
       }
-      if (Array.isArray(r.alts.b) && r.alts.b.some((s: any) => s.id === id)) {
-        r.alts.b = r.alts.b.filter((s: any) => s.id !== id);
-        changed = true;
-      }
-      if (changed) {
-        r.alts = alternatives(active(r));
-        delete r._osrmCache;
-      }
-    }
-  });
+    });
 
-  const newDestStops = [...targetStops, d];
-  dest.alts = alternatives(newDestStops);
-  dest.option = dest.alts.chosen;
-  delete (dest as any)._osrmCache;
+    // Si la ruta origen quedó vacía, filtrarla y reindexar
+    S.routes = (S.routes || []).filter(r => active(r).length > 0);
+    S.routes.forEach((r: any, idx: number) => {
+      r.id = idx;
+    });
+  }
+
+  const newDestStops = [...targetStops, item];
+  target.alts = alternatives(newDestStops);
+  target.option = target.alts.chosen;
+  delete (target as any)._osrmCache;
 
   deduplicateFleetStops();
 
-  S.currentRouteIndex = dest.id;
+  S.currentRouteIndex = target.id;
   renderRoutes();
 
   if (S.viewMode === 'all') {
     drawAllRoutes();
   } else {
-    draw(dest);
+    draw(target);
   }
 
   syncAllRoutesRealDistance();
-  toast(`Parada transferida exitosamente a Ruta ${dest.id + 1}`, 'success');
+  if ((window as any).renderUnassignedPinsOnMap) {
+    (window as any).renderUnassignedPinsOnMap();
+  }
+  if ((window as any).renderPolygonToolbarUI) {
+    (window as any).renderPolygonToolbarUI();
+  }
+  toast(`Parada transferida exitosamente a Ruta ${target.id + 1}`, 'success');
   return true;
 }
 

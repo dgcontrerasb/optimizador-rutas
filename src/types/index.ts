@@ -102,6 +102,7 @@ export interface DeliveryRoute {
   realKm?: number | null;
   realDurationMin?: number | null;
   _userManualOption?: boolean;
+  lockedByLasso?: boolean;
   [key: string]: any;
 }
 

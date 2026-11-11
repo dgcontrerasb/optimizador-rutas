@@ -1,15 +1,10 @@
 import { S, toast, safeGet, safeSet, esc } from './state/store';
-import { DEPOT, MAX_VOL, MAX_DEST } from './config/constants';
 import { classifyZone } from './config/zones';
 import {
   cacheKey,
   clearGeoCache,
   geocodeWithGoogle,
-  getGoogleApiKey,
-  GOOGLE_API_KEY,
-  loadGoogleMapsScript,
-  sleep,
-  updateApiCounterUI
+  sleep
 } from './services/geocoding';
 import {
   extractSheetData,
@@ -22,13 +17,11 @@ import {
 import {
   active,
   alternatives,
-  buildGroups,
-  dist
+  buildGroups
 } from './services/routing';
 import { syncAllRoutesRealDistance } from './services/osrm';
 import {
   draw,
-  drawAllRoutes,
   initMap,
   setPinSizeMode,
   setRouteViewStyle,
@@ -50,7 +43,6 @@ import {
 } from './ui/editModal';
 import {
   initToolbarListeners,
-  setRouteDistributionMode,
   updateDistModeUI
 } from './ui/toolbar';
 import { initAuthGate } from './ui/authGate';
@@ -62,6 +54,12 @@ import {
   renderTelemetryOnMap,
   renderTelemetryPanelUI
 } from './services/telemetry';
+import {
+  clearAllPolygons,
+  renderPolygonsOnMap,
+  renderPolygonToolbarUI,
+  renderUnassignedPinsOnMap
+} from './services/polygonGeofence';
 
 declare const XLSX: any;
 
@@ -226,6 +224,9 @@ export function generate(): Promise<void> | void {
     publishRoutesToTelemetryServer();
     renderTelemetryPanelUI();
     renderTelemetryOnMap();
+    renderPolygonsOnMap();
+    renderUnassignedPinsOnMap();
+    renderPolygonToolbarUI();
     // Colapsar inteligentemente el primer panel oscuro para dar máximo espacio al mapa y las rutas
     toggleDarkSidebar(true);
     toast(`${S.routes.length} rutas zonificadas y optimizadas con éxito`, 'success');
@@ -635,6 +636,7 @@ function initApp(): void {
   updateDistModeUI();
   updatePinSizeModeUI(S.pinSize || 'micro');
   updateRouteViewStyleUI(S.routeViewStyle);
+  renderPolygonToolbarUI();
 }
 
 export function switchLeftTab(tab: 'rutas' | 'detalles'): void {
@@ -691,6 +693,7 @@ export function handleCloseShift(): void {
   if (welcomeArea) welcomeArea.classList.remove('hidden');
 
   clearAllTelemetryTrucks();
+  clearAllPolygons(true);
   switchLeftTab('rutas');
   toast('Turno cerrado · Consola lista para nuevo despacho', 'info');
 }

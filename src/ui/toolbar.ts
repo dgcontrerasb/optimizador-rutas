@@ -1,4 +1,4 @@
-import { COMFORT, MAX_DEST, MAX_VOL, MIN_DEST } from '../config/constants';
+import { MAX_DEST, MAX_VOL } from '../config/constants';
 import { S, safeSet, toast } from '../state/store';
 import { active, vol } from '../services/routing';
 import { getRouteEffectiveKm } from '../services/osrm';

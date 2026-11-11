@@ -1,5 +1,4 @@
 import { DEPOT, OSRM_URL } from '../config/constants';
-import { DeliveryRoute, PhysicalDestination } from '../types';
 import { esc, S, safeSet, toast } from '../state/store';
 import { active, isReturnDepot } from '../services/routing';
 import { applyRealDistanceToRoute } from '../services/osrm';
@@ -415,6 +414,9 @@ export function renderStopPopupHtml(
         <button type="button" onclick="window.openReassignModal(${d.id}, ${routeId !== null ? routeId : -1})" class="px-2 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded text-[11px] font-semibold flex items-center gap-1 shadow-xs cursor-pointer" title="Reasignar o mover esta parada a otra ruta">
           ⇄ Reasignar Ruta
         </button>
+        <button type="button" onclick="window.removeStopToUnassignedPool && window.removeStopToUnassignedPool(${d.id})" class="px-2 py-1 bg-slate-700 hover:bg-slate-800 text-white rounded text-[11px] font-semibold flex items-center gap-1 shadow-xs cursor-pointer" title="Sacar esta parada de su ruta actual y dejarla como pin libre en el mapa">
+          ⚪ Dejar Libre
+        </button>
         <a href="https://www.google.com/maps/dir/?api=1&destination=${d.lat},${d.lng}&travelmode=driving&dir_action=navigate" target="_blank" rel="noopener noreferrer" class="px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-[11px] font-semibold flex items-center gap-1 shadow-xs" title="Abrir navegación GPS paso a paso">
           🧭 Navegar GPS
         </a>
@@ -591,6 +593,9 @@ export async function draw(r: any, { preserveView = false } = {}): Promise<void>
     applyRouteLayerVisibility();
   } finally {
     applyRouteLayerVisibility();
+    if ((window as any).renderPolygonsOnMap) (window as any).renderPolygonsOnMap();
+    if ((window as any).renderUnassignedPinsOnMap) (window as any).renderUnassignedPinsOnMap();
+    if ((window as any).renderPolygonToolbarUI) (window as any).renderPolygonToolbarUI();
     setTimeout(() => { if (S.map) S.map.invalidateSize(); }, 250);
   }
 }
@@ -777,6 +782,9 @@ export async function drawAllRoutes({ preserveView = false } = {}): Promise<void
   }
 
   setTimeout(() => { if (S.map) S.map.invalidateSize(); }, 250);
+  if ((window as any).renderPolygonsOnMap) (window as any).renderPolygonsOnMap();
+  if ((window as any).renderUnassignedPinsOnMap) (window as any).renderUnassignedPinsOnMap();
+  if ((window as any).renderPolygonToolbarUI) (window as any).renderPolygonToolbarUI();
 }
 
 export function initMap(): void {
@@ -852,6 +860,9 @@ export function initMap(): void {
   setTimeout(() => {
     if (S.map) S.map.invalidateSize();
     if ((window as any).renderTelemetryOnMap) (window as any).renderTelemetryOnMap();
+    if ((window as any).renderPolygonsOnMap) (window as any).renderPolygonsOnMap();
+    if ((window as any).renderUnassignedPinsOnMap) (window as any).renderUnassignedPinsOnMap();
+    if ((window as any).renderPolygonToolbarUI) (window as any).renderPolygonToolbarUI();
   }, 200);
 }
 
