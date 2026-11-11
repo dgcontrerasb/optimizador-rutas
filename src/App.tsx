@@ -1,8 +1,7 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
+import React from 'react';
+import { LoginView } from './components/LoginView';
+import { showConsoleView } from './ui/authGate';
 
 export default function App() {
-  return <div></div>;
+  return <LoginView onLoginSuccess={() => showConsoleView()} />;
 }

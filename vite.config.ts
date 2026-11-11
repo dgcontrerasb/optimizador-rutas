@@ -28,8 +28,8 @@ export default defineConfig(({mode}) => {
   const env = loadEnv(mode, process.cwd(), '');
   const localEnv = getLocalEnv();
   const googleMapsApiKey = localEnv.VITE_GOOGLE_MAPS_API_KEY || env.VITE_GOOGLE_MAPS_API_KEY || process.env.VITE_GOOGLE_MAPS_API_KEY || '';
-  const authUserHash = localEnv.VITE_AUTH_USER_HASH || env.VITE_AUTH_USER_HASH || process.env.VITE_AUTH_USER_HASH || 'f9ccd79a0dd81ac1350e821257dab0e95ba26f583852321572ea71fa47847227';
-  const authPassHash = localEnv.VITE_AUTH_PASS_HASH || env.VITE_AUTH_PASS_HASH || process.env.VITE_AUTH_PASS_HASH || 'c6c2f79d92bbfcb8caf4f430f59ec0fe4eaec0c91185a414beab55b98541f0f1';
+  const firebaseDatabaseUrl = localEnv.VITE_FIREBASE_DATABASE_URL || env.VITE_FIREBASE_DATABASE_URL || process.env.VITE_FIREBASE_DATABASE_URL || '';
+  const firebaseAuthSecret = localEnv.VITE_FIREBASE_AUTH_SECRET || env.VITE_FIREBASE_AUTH_SECRET || process.env.VITE_FIREBASE_AUTH_SECRET || '';
 
   return {
     plugins: [
@@ -38,8 +38,7 @@ export default defineConfig(({mode}) => {
       {
         name: 'inject-app-runtime-config',
         transformIndexHtml(html) {
-          const encodedKey = googleMapsApiKey ? Buffer.from(googleMapsApiKey.trim()).toString('base64') : '';
-          const configScript = `<script>window.__APP_CONFIG__ = Object.freeze({ GOOGLE_MAPS_API_KEY: ${JSON.stringify(encodedKey)}, AUTH_USER_HASH: ${JSON.stringify(authUserHash)}, AUTH_PASS_HASH: ${JSON.stringify(authPassHash)} });</script>`;
+          const configScript = `<script>window.__APP_CONFIG__ = Object.freeze({ GOOGLE_MAPS_API_KEY: ${JSON.stringify(googleMapsApiKey)}, FIREBASE_DATABASE_URL: ${JSON.stringify(firebaseDatabaseUrl)}, FIREBASE_AUTH_SECRET: ${JSON.stringify(firebaseAuthSecret)} });</script>`;
           return html.replace('</head>', `  ${configScript}\n</head>`);
         },
       },
@@ -49,11 +48,11 @@ export default defineConfig(({mode}) => {
         '@': path.resolve(__dirname, '.'),
       },
     },
-    build: {
-      sourcemap: false,
-    },
     server: {
+      // HMR is disabled in AI Studio via DISABLE_HMR env var.
+      // Do not modifyâfile watching is disabled to prevent flickering during agent edits.
       hmr: process.env.DISABLE_HMR !== 'true',
+      // Disable file watching when DISABLE_HMR is true to save CPU during agent edits.
       watch: process.env.DISABLE_HMR === 'true' ? null : {},
     },
   };

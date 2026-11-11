@@ -1,1 +1,82 @@
 @import "tailwindcss";
+
+/* ============================================================================
+   LOADER DE PROCESOS GLOBALES (Adaptado de Uiverse.io con temática Jamar)
+   ============================================================================ */
+
+.jamar-uiverse-loader {
+  position: relative;
+  width: 155px;
+  height: 155px;
+  background: transparent;
+  border: 3px solid rgba(234, 88, 12, 0.18);
+  border-radius: 50%;
+  text-align: center;
+  line-height: 155px;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 800;
+  color: #EA580C;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  text-shadow: 0 0 14px rgba(234, 88, 12, 0.65);
+  box-shadow: 0 0 25px rgba(0, 0, 0, 0.35);
+  user-select: none;
+}
+
+.jamar-uiverse-loader::before {
+  content: '';
+  position: absolute;
+  top: -3px;
+  left: -3px;
+  width: 100%;
+  height: 100%;
+  border: 3px solid transparent;
+  border-top: 3px solid #EA580C;
+  border-right: 3px solid #F97316;
+  border-radius: 50%;
+  animation: jamarAnimateC 1.8s linear infinite;
+}
+
+.jamar-uiverse-loader span.jamar-radar-arm {
+  display: block;
+  position: absolute;
+  top: calc(50% - 2px);
+  left: 50%;
+  width: 50%;
+  height: 4px;
+  background: transparent;
+  transform-origin: left;
+  animation: jamarAnimate 1.8s linear infinite;
+}
+
+.jamar-uiverse-loader span.jamar-radar-arm::before {
+  content: '';
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #FB923C;
+  top: -5px;
+  right: -7px;
+  box-shadow: 0 0 16px 4px rgba(234, 88, 12, 0.85);
+}
+
+@keyframes jamarAnimateC {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes jamarAnimate {
+  0% {
+    transform: rotate(45deg);
+  }
+  100% {
+    transform: rotate(405deg);
+  }
+}
+
