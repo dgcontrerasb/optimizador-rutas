@@ -1,6 +1,4 @@
 const AUTH_SALT = 'cendis-siberia-tms-2026-v1';
-const EXPECTED_USER_DIGEST = 'd87224df50c14899cbc4464243fb8499ea61b745ff80766793d3f68bc1b72d13';
-const EXPECTED_PASS_DIGEST = 'ede0c9f39d45b2b28896a027cddfc5b9283527db4407fa5727c810badde27113';
 const SESSION_STORAGE_KEY = 'rutasjamar_auth_session_v1';
 const SESSION_TOKEN_VALUE = 'cendis_siberia_verified_session_d87224df';
 
@@ -8,6 +6,48 @@ const SESSION_TOKEN_VALUE = 'cendis_siberia_verified_session_d87224df';
 const LOCKOUT_STORAGE_KEY = 'rutasjamar_auth_lockout_v1';
 const MAX_FAILED_ATTEMPTS = 5;
 const LOCKOUT_DURATION_MS = 15 * 60 * 1000; // 15 minutos
+
+// =========================================================================
+// REGISTRO DE CUENTAS OFICIALES (ÚNICAMENTE HASHES CRIPTOGRÁFICOS)
+// Ninguna contraseña ni usuario se almacena en texto plano en el código.
+// =========================================================================
+
+export interface AccountConfig {
+  id: 'jefe_cendis' | 'coordinador';
+  displayName: string;
+  userDigests: string[];
+  defaultPassDigest: string;
+  storageKey: string;
+}
+
+const ACCOUNTS: AccountConfig[] = [
+  {
+    id: 'jefe_cendis',
+    displayName: 'Jefe Cendis',
+    userDigests: [
+      '064f5b90b061b5904562305eabbe300dc95d5ccc10544f5bae9630666e4dc186', // 'jefe cendis'
+      '56f55999f456bcf1300a986bbe8c8ed28075748c5a1e8ff180a354f4d3c89870'  // 'jefecendis'
+    ],
+    defaultPassDigest: '6c3629997ce4cfdd5e6ff7d5f91c651c5d40fc75188956f6f7a8caf668fe0933',
+    storageKey: 'rutasjamar_custom_pass_jefe_cendis'
+  },
+  {
+    id: 'coordinador',
+    displayName: 'Coordinador',
+    userDigests: [
+      '346784f72fe71ad22862fbbd4231fa5dcefd7839074fc2efe0390832d0f13ff9', // 'coordinador'
+      'd87224df50c14899cbc4464243fb8499ea61b745ff80766793d3f68bc1b72d13'  // legacy compat
+    ],
+    defaultPassDigest: '51abf0c129b2fd77c5a738c8670b1b6e411cb3861b94f8e9dcab41a17eb2a53d',
+    storageKey: 'rutasjamar_custom_pass_coordinador'
+  }
+];
+
+// Hash criptográfico de la Clave Maestra de Emergencia
+const MASTER_KEY_DIGEST = '459d4eaf90db7339c969221cb31ebbde1802c3b0b9eea6092d7ed1dd71506768';
+
+// Destino de WhatsApp ofuscado (no visible en texto plano en el HTML)
+const ENCODED_WA_TARGET = 'NTczMjEzOTAyNzA4';
 
 interface LockoutState {
   failures: number;
@@ -175,7 +215,7 @@ function constantTimeEqual(a: string, b: string): boolean {
 export function verifyCredentialsWithDetails(
   username: string,
   password: string
-): { success: boolean; error?: string } {
+): { success: boolean; user?: string; error?: string } {
   const lockout = getLoginLockoutStatus();
   if (lockout.locked) {
     return {
@@ -193,21 +233,34 @@ export function verifyCredentialsWithDetails(
   const userDigest = deriveIteratedHash(normalizedUser);
   const passDigest = deriveIteratedHash(rawPass);
 
-  // Comprobar contra credencial primaria y variables de entorno VITE_AUTH_*
+  // 1. Buscar coincidencia con alguna de las dos cuentas oficiales
+  for (const acc of ACCOUNTS) {
+    const userMatch = acc.userDigests.some((d) => constantTimeEqual(userDigest, d));
+    if (userMatch) {
+      // Verificar si tiene una contraseña actualizada mediante Clave Maestra
+      let expectedPassDigest = acc.defaultPassDigest;
+      try {
+        const custom = window.localStorage.getItem(acc.storageKey);
+        if (custom && custom.length === 64) {
+          expectedPassDigest = custom;
+        }
+      } catch {}
+
+      if (constantTimeEqual(passDigest, expectedPassDigest)) {
+        resetFailedLoginAttempts();
+        return { success: true, user: acc.displayName };
+      }
+    }
+  }
+
+  // 2. Comprobar contra variables de entorno opcionales VITE_AUTH_*
   const envUserHash = (import.meta as any).env?.VITE_AUTH_USER_HASH;
   const envPassHash = (import.meta as any).env?.VITE_AUTH_PASS_HASH;
-
-  const userOk =
-    constantTimeEqual(userDigest, EXPECTED_USER_DIGEST) ||
-    (envUserHash && constantTimeEqual(userDigest, envUserHash));
-
-  const passOk =
-    constantTimeEqual(passDigest, EXPECTED_PASS_DIGEST) ||
-    (envPassHash && constantTimeEqual(passDigest, envPassHash));
-
-  if (userOk && passOk) {
-    resetFailedLoginAttempts();
-    return { success: true };
+  if (envUserHash && envPassHash) {
+    if (constantTimeEqual(userDigest, envUserHash) && constantTimeEqual(passDigest, envPassHash)) {
+      resetFailedLoginAttempts();
+      return { success: true, user: 'Coordinador' };
+    }
   }
 
   const failResult = recordFailedLoginAttempt();
@@ -223,6 +276,51 @@ export function verifyCredentialsWithDetails(
     success: false,
     error: `Credenciales inválidas. Te quedan ${attemptsLeft} intento(s) antes del bloqueo temporal.`
   };
+}
+
+export function resetPasswordWithMasterKey(
+  accountId: 'jefe_cendis' | 'coordinador',
+  enteredMasterKey: string,
+  newPassword: string
+): { success: boolean; error?: string } {
+  const cleanMaster = String(enteredMasterKey || '').trim();
+  const cleanNewPass = String(newPassword || '').trim();
+
+  if (!cleanMaster) {
+    return { success: false, error: 'Por favor ingresa la Clave Maestra.' };
+  }
+  if (!cleanNewPass || cleanNewPass.length < 6) {
+    return { success: false, error: 'La nueva contraseña debe tener al menos 6 caracteres.' };
+  }
+
+  const masterDigest = deriveIteratedHash(cleanMaster);
+  if (!constantTimeEqual(masterDigest, MASTER_KEY_DIGEST)) {
+    return { success: false, error: 'Clave Maestra incorrecta. No tienes autorización para restablecer.' };
+  }
+
+  const targetAcc = ACCOUNTS.find((a) => a.id === accountId);
+  if (!targetAcc) {
+    return { success: false, error: 'Cuenta de usuario no válida.' };
+  }
+
+  const newPassDigest = deriveIteratedHash(cleanNewPass);
+  try {
+    window.localStorage.setItem(targetAcc.storageKey, newPassDigest);
+    resetFailedLoginAttempts();
+    return { success: true };
+  } catch (_e) {
+    return { success: false, error: 'No se pudo guardar la nueva contraseña en este navegador.' };
+  }
+}
+
+export function openWhatsAppRecovery(accountLabel: string): void {
+  try {
+    const targetPhone = atob(ENCODED_WA_TARGET);
+    const reqCode = Math.floor(1000 + Math.random() * 9000);
+    const msg = `Hola, solicito el restablecimiento de clave para el usuario [${accountLabel}] en el optimizador Rutas Jamar (Cendis Siberia). Código de seguridad: #REC-${reqCode}`;
+    const url = `https://wa.me/${targetPhone}?text=${encodeURIComponent(msg)}`;
+    window.open(url, '_blank', 'noopener,noreferrer');
+  } catch {}
 }
 
 export function verifyCredentials(username: string, password: string): boolean {
@@ -254,10 +352,11 @@ export function isSessionAuthenticated(): boolean {
   return false;
 }
 
-export function persistAuthenticatedSession(rememberMe: boolean): void {
+export function persistAuthenticatedSession(rememberMe: boolean, userName: string = 'Coordinador'): void {
   const duration = rememberMe ? 7 * 24 * 3600 * 1000 : 12 * 3600 * 1000; // 7 días con 'Recordar' o 12h
   const payload = JSON.stringify({
     token: SESSION_TOKEN_VALUE,
+    user: userName,
     expiresAt: Date.now() + duration
   });
 
@@ -271,6 +370,17 @@ export function persistAuthenticatedSession(rememberMe: boolean): void {
   try {
     window.sessionStorage.setItem(SESSION_STORAGE_KEY, payload);
   } catch {}
+}
+
+export function getAuthenticatedUser(): string {
+  try {
+    const raw = window.sessionStorage.getItem(SESSION_STORAGE_KEY) || window.localStorage.getItem(SESSION_STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed.user) return parsed.user;
+    }
+  } catch {}
+  return 'Coordinador';
 }
 
 export function clearAuthenticatedSession(): void {

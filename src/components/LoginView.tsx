@@ -10,7 +10,13 @@ import {
   LockKeyhole,
   AlertCircle
 } from 'lucide-react';
-import { verifyCredentialsWithDetails, persistAuthenticatedSession, getLoginLockoutStatus } from '../services/auth';
+import {
+  verifyCredentialsWithDetails,
+  persistAuthenticatedSession,
+  getLoginLockoutStatus,
+  resetPasswordWithMasterKey,
+  openWhatsAppRecovery
+} from '../services/auth';
 
 export type SplitCurtainState = 'closed' | 'opening';
 
@@ -29,6 +35,16 @@ export const LoginView: React.FC<LoginViewProps> = ({
   const [rememberMe, setRememberMe] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Modal de recuperación de contraseña
+  const [showRecoveryModal, setShowRecoveryModal] = useState(false);
+  const [recoveryAccount, setRecoveryAccount] = useState<'jefe_cendis' | 'coordinador'>('jefe_cendis');
+  const [recoveryTab, setRecoveryTab] = useState<'whatsapp' | 'master'>('whatsapp');
+  const [masterKey, setMasterKey] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [recoveryError, setRecoveryError] = useState<string | null>(null);
+  const [recoverySuccess, setRecoverySuccess] = useState<string | null>(null);
 
   const isOpening = curtainState === 'opening';
 
@@ -51,7 +67,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
     setTimeout(() => {
       const result = verifyCredentialsWithDetails(username, password);
       if (result.success) {
-        persistAuthenticatedSession(rememberMe);
+        persistAuthenticatedSession(rememberMe, result.user || 'Coordinador');
         setIsSubmitting(false);
         onLoginSuccess();
       } else {
@@ -59,6 +75,31 @@ export const LoginView: React.FC<LoginViewProps> = ({
         setErrorMsg(result.error || 'Credenciales inválidas. Verifica tu usuario y contraseña de coordinador.');
       }
     }, 150);
+  };
+
+  const handleMasterResetSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setRecoveryError(null);
+    setRecoverySuccess(null);
+
+    if (newPassword !== confirmPassword) {
+      setRecoveryError('Las contraseñas no coinciden.');
+      return;
+    }
+
+    const res = resetPasswordWithMasterKey(recoveryAccount, masterKey, newPassword);
+    if (res.success) {
+      setRecoverySuccess('✅ Contraseña actualizada exitosamente. Ya puedes iniciar sesión con tu nueva clave.');
+      setMasterKey('');
+      setNewPassword('');
+      setConfirmPassword('');
+      setTimeout(() => {
+        setShowRecoveryModal(false);
+        setRecoverySuccess(null);
+      }, 2000);
+    } else {
+      setRecoveryError(res.error || 'No se pudo restablecer la contraseña.');
+    }
   };
 
   return (
@@ -278,9 +319,9 @@ export const LoginView: React.FC<LoginViewProps> = ({
               </div>
             </div>
 
-            {/* Checkbox: Mantener sesión activa */}
-            <div className="flex items-center pt-0.5">
-              <label className="inline-flex items-center gap-2.5 cursor-pointer select-none">
+            {/* Checkbox: Mantener sesión activa y Enlace de Recuperación */}
+            <div className="flex items-center justify-between pt-0.5 flex-wrap gap-2">
+              <label className="inline-flex items-center gap-2 cursor-pointer select-none">
                 <input
                   type="checkbox"
                   checked={rememberMe}
@@ -288,9 +329,21 @@ export const LoginView: React.FC<LoginViewProps> = ({
                   className="w-4 h-4 rounded border-slate-300 text-orange-600 accent-orange-600 focus:ring-orange-500 cursor-pointer"
                 />
                 <span className="text-xs sm:text-sm text-slate-700 font-medium">
-                  Mantener sesión activa en este equipo
+                  Recordarme
                 </span>
               </label>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setShowRecoveryModal(true);
+                  setRecoveryError(null);
+                  setRecoverySuccess(null);
+                }}
+                className="text-xs font-semibold text-orange-600 hover:text-orange-700 transition cursor-pointer"
+              >
+                ¿Olvidaste tu contraseña?
+              </button>
             </div>
 
             {/* Botón de acción */}
@@ -307,10 +360,163 @@ export const LoginView: React.FC<LoginViewProps> = ({
           {/* Pie del formulario */}
           <div className="pt-2 flex items-center justify-center gap-1.5 text-xs text-slate-400">
             <LockKeyhole className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-            <span>Conexión cifrada de extremo a extremo</span>
+            <span>Conexión cifrada de extremo a extremo · Cendis Siberia</span>
           </div>
         </div>
       </div>
+
+      {/* MODAL DE RECUPERACIÓN DE CONTRASEÑA */}
+      {showRecoveryModal && (
+        <div className="fixed inset-0 z-[99999] bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 select-none">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 sm:p-8 space-y-5 shadow-2xl border border-slate-100">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-orange-50 text-orange-600 flex items-center justify-center font-bold">
+                  🔐
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-sm text-slate-900">Recuperación de Acceso</h3>
+                  <p className="text-[11px] text-slate-500">Cendis Siberia · Rutas Jamar</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowRecoveryModal(false)}
+                className="w-8 h-8 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 flex items-center justify-center transition cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Selector de cuenta a recuperar */}
+            <div className="space-y-1.5">
+              <label className="block text-xs font-semibold text-slate-700">Selecciona el usuario a recuperar:</label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setRecoveryAccount('jefe_cendis')}
+                  className={`py-2 px-3 rounded-xl text-xs font-bold transition border cursor-pointer ${
+                    recoveryAccount === 'jefe_cendis'
+                      ? 'bg-orange-50 border-orange-500 text-orange-700'
+                      : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                  }`}
+                >
+                  👔 Jefe Cendis
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRecoveryAccount('coordinador')}
+                  className={`py-2 px-3 rounded-xl text-xs font-bold transition border cursor-pointer ${
+                    recoveryAccount === 'coordinador'
+                      ? 'bg-orange-50 border-orange-500 text-orange-700'
+                      : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                  }`}
+                >
+                  📋 Coordinador
+                </button>
+              </div>
+            </div>
+
+            {/* Pestañas de método de recuperación */}
+            <div className="flex rounded-xl bg-slate-100 p-1 text-xs font-bold">
+              <button
+                type="button"
+                onClick={() => setRecoveryTab('whatsapp')}
+                className={`flex-1 py-1.5 rounded-lg transition cursor-pointer text-center ${
+                  recoveryTab === 'whatsapp' ? 'bg-white shadow-xs text-orange-600' : 'text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                📱 Vía WhatsApp
+              </button>
+              <button
+                type="button"
+                onClick={() => setRecoveryTab('master')}
+                className={`flex-1 py-1.5 rounded-lg transition cursor-pointer text-center ${
+                  recoveryTab === 'master' ? 'bg-white shadow-xs text-orange-600' : 'text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                🔑 Clave Maestra
+              </button>
+            </div>
+
+            {/* Método 1: WhatsApp */}
+            {recoveryTab === 'whatsapp' && (
+              <div className="space-y-3 pt-1">
+                <p className="text-xs text-slate-600 leading-relaxed">
+                  Genera una solicitud oficial y envíala a la línea de soporte de Despacho para validar tu identidad y recibir tu clave:
+                </p>
+                <button
+                  type="button"
+                  onClick={() => openWhatsAppRecovery(recoveryAccount === 'jefe_cendis' ? 'Jefe Cendis' : 'Coordinador')}
+                  className="w-full py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-2 transition cursor-pointer shadow-sm"
+                >
+                  <span>💬</span>
+                  <span>Enviar solicitud por WhatsApp</span>
+                </button>
+              </div>
+            )}
+
+            {/* Método 2: Clave Maestra */}
+            {recoveryTab === 'master' && (
+              <form onSubmit={handleMasterResetSubmit} className="space-y-3 pt-1">
+                <p className="text-xs text-slate-600 leading-relaxed">
+                  Si cuentas con autorización de la jefatura, introduce la <b>Clave Maestra de Seguridad</b> para asignar una nueva contraseña en este equipo:
+                </p>
+
+                <div className="space-y-1">
+                  <label className="block text-[11px] font-semibold text-slate-700">Clave Maestra:</label>
+                  <input
+                    type="password"
+                    value={masterKey}
+                    onChange={(e) => setMasterKey(e.target.value)}
+                    placeholder="••••••••••••"
+                    required
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs text-slate-800 focus:outline-none focus:border-orange-500"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="block text-[11px] font-semibold text-slate-700">Nueva Contraseña:</label>
+                  <input
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="Mínimo 6 caracteres"
+                    required
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs text-slate-800 focus:outline-none focus:border-orange-500"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="block text-[11px] font-semibold text-slate-700">Confirmar Nueva Contraseña:</label>
+                  <input
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="Repite la nueva contraseña"
+                    required
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs text-slate-800 focus:outline-none focus:border-orange-500"
+                  />
+                </div>
+
+                {recoveryError && (
+                  <p className="text-xs text-rose-600 font-semibold">{recoveryError}</p>
+                )}
+                {recoverySuccess && (
+                  <p className="text-xs text-emerald-600 font-bold">{recoverySuccess}</p>
+                )}
+
+                <button
+                  type="submit"
+                  className="w-full py-2.5 px-4 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs transition cursor-pointer"
+                >
+                  ✓ Restablecer Contraseña
+                </button>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
