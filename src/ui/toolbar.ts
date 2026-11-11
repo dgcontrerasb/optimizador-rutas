@@ -55,6 +55,24 @@ export function saveFile(name: string, content: any, type: string): void {
   setTimeout(() => URL.revokeObjectURL(a.href), 500);
 }
 
+function sanitizeCell(val: any): any {
+  if (typeof val === 'string' && val.length > 0) {
+    const first = val.charAt(0);
+    if (first === '=' || first === '+' || first === '-' || first === '@' || first === '\t' || first === '\r') {
+      return `'${val}`;
+    }
+  }
+  return val;
+}
+
+function sanitizeRow<T extends Record<string, any>>(row: T): T {
+  const clean: any = {};
+  for (const k in row) {
+    clean[k] = sanitizeCell(row[k]);
+  }
+  return clean;
+}
+
 export function exportFull(): {
   cons: any[];
   ordersList: any[];
@@ -129,7 +147,13 @@ export function exportFull(): {
     descripcion: r.Descripción || r.Descripcion || ''
   }));
 
-  return { cons, ordersList, routesList, excluded, raw: S.rawRows };
+  return {
+    cons: cons.map(sanitizeRow),
+    ordersList: ordersList.map(sanitizeRow),
+    routesList: routesList.map(sanitizeRow),
+    excluded: excluded.map(sanitizeRow),
+    raw: (S.rawRows || []).map(r => (typeof r === 'object' && r ? sanitizeRow(r) : r))
+  };
 }
 
 export function updateDistModeUI(): void {

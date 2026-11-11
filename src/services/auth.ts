@@ -4,6 +4,68 @@ const EXPECTED_PASS_DIGEST = 'ede0c9f39d45b2b28896a027cddfc5b9283527db4407fa5727
 const SESSION_STORAGE_KEY = 'rutasjamar_auth_session_v1';
 const SESSION_TOKEN_VALUE = 'cendis_siberia_verified_session_d87224df';
 
+// Control de fuerza bruta (Rate Limiting)
+const LOCKOUT_STORAGE_KEY = 'rutasjamar_auth_lockout_v1';
+const MAX_FAILED_ATTEMPTS = 5;
+const LOCKOUT_DURATION_MS = 15 * 60 * 1000; // 15 minutos
+
+interface LockoutState {
+  failures: number;
+  lockedUntil: number;
+}
+
+function getLockoutState(): LockoutState {
+  try {
+    const raw = window.localStorage.getItem(LOCKOUT_STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (typeof parsed.failures === 'number' && typeof parsed.lockedUntil === 'number') {
+        return parsed;
+      }
+    }
+  } catch {}
+  return { failures: 0, lockedUntil: 0 };
+}
+
+function setLockoutState(state: LockoutState): void {
+  try {
+    window.localStorage.setItem(LOCKOUT_STORAGE_KEY, JSON.stringify(state));
+  } catch {}
+}
+
+export function getLoginLockoutStatus(): { locked: boolean; remainingMinutes: number } {
+  const state = getLockoutState();
+  const now = Date.now();
+  if (state.lockedUntil > now) {
+    const remaining = Math.max(1, Math.ceil((state.lockedUntil - now) / 60000));
+    return { locked: true, remainingMinutes: remaining };
+  }
+  return { locked: false, remainingMinutes: 0 };
+}
+
+export function recordFailedLoginAttempt(): { locked: boolean; remainingMinutes: number } {
+  const state = getLockoutState();
+  const now = Date.now();
+  if (state.lockedUntil > now) {
+    const remaining = Math.max(1, Math.ceil((state.lockedUntil - now) / 60000));
+    return { locked: true, remainingMinutes: remaining };
+  }
+  state.failures += 1;
+  if (state.failures >= MAX_FAILED_ATTEMPTS) {
+    state.lockedUntil = now + LOCKOUT_DURATION_MS;
+    setLockoutState(state);
+    return { locked: true, remainingMinutes: 15 };
+  }
+  setLockoutState(state);
+  return { locked: false, remainingMinutes: 0 };
+}
+
+export function resetFailedLoginAttempts(): void {
+  try {
+    window.localStorage.removeItem(LOCKOUT_STORAGE_KEY);
+  } catch {}
+}
+
 /**
  * Implementación pura de SHA-256 (FIPS 180-4) para garantizar funcionamiento
  * tanto en contextos WebCrypto como en iframes/entornos locales restringidos.
@@ -51,7 +113,6 @@ function sha256Hex(ascii: string): string {
     hash = hash.slice(0, 8);
 
     for (i = 0; i < 64; i++) {
-      const i2 = i + j;
       const w15 = w[i - 15],
         w2 = w[i - 2];
 
@@ -111,41 +172,104 @@ function constantTimeEqual(a: string, b: string): boolean {
   return diff === 0;
 }
 
-export function verifyCredentials(username: string, password: string): boolean {
+export function verifyCredentialsWithDetails(
+  username: string,
+  password: string
+): { success: boolean; error?: string } {
+  const lockout = getLoginLockoutStatus();
+  if (lockout.locked) {
+    return {
+      success: false,
+      error: `Demasiados intentos fallidos. Acceso bloqueado temporalmente por ${lockout.remainingMinutes} minuto(s).`
+    };
+  }
+
   const normalizedUser = String(username || '').trim().toLowerCase();
   const rawPass = String(password || '').trim();
-  if (!normalizedUser || !rawPass) return false;
+  if (!normalizedUser || !rawPass) {
+    return { success: false, error: 'Por favor ingresa usuario y contraseña.' };
+  }
 
   const userDigest = deriveIteratedHash(normalizedUser);
   const passDigest = deriveIteratedHash(rawPass);
 
-  const userOk = constantTimeEqual(userDigest, EXPECTED_USER_DIGEST);
-  const passOk = constantTimeEqual(passDigest, EXPECTED_PASS_DIGEST);
-  return userOk && passOk;
+  // Comprobar contra credencial primaria y variables de entorno VITE_AUTH_*
+  const envUserHash = (import.meta as any).env?.VITE_AUTH_USER_HASH;
+  const envPassHash = (import.meta as any).env?.VITE_AUTH_PASS_HASH;
+
+  const userOk =
+    constantTimeEqual(userDigest, EXPECTED_USER_DIGEST) ||
+    (envUserHash && constantTimeEqual(userDigest, envUserHash));
+
+  const passOk =
+    constantTimeEqual(passDigest, EXPECTED_PASS_DIGEST) ||
+    (envPassHash && constantTimeEqual(passDigest, envPassHash));
+
+  if (userOk && passOk) {
+    resetFailedLoginAttempts();
+    return { success: true };
+  }
+
+  const failResult = recordFailedLoginAttempt();
+  if (failResult.locked) {
+    return {
+      success: false,
+      error: `Has superado los 5 intentos permitidos. Acceso bloqueado por 15 minutos.`
+    };
+  }
+
+  const attemptsLeft = MAX_FAILED_ATTEMPTS - getLockoutState().failures;
+  return {
+    success: false,
+    error: `Credenciales inválidas. Te quedan ${attemptsLeft} intento(s) antes del bloqueo temporal.`
+  };
+}
+
+export function verifyCredentials(username: string, password: string): boolean {
+  return verifyCredentialsWithDetails(username, password).success;
 }
 
 export function isSessionAuthenticated(): boolean {
+  const now = Date.now();
+  const checkToken = (raw: string | null): boolean => {
+    if (!raw) return false;
+    try {
+      const parsed = JSON.parse(raw);
+      if (parsed.token === SESSION_TOKEN_VALUE && (!parsed.expiresAt || parsed.expiresAt > now)) {
+        return true;
+      }
+    } catch {
+      // Compatibilidad hacia atrás si era string plano
+      if (raw === SESSION_TOKEN_VALUE) return true;
+    }
+    return false;
+  };
+
   try {
-    const local = window.localStorage.getItem(SESSION_STORAGE_KEY);
-    if (local === SESSION_TOKEN_VALUE) return true;
+    if (checkToken(window.localStorage.getItem(SESSION_STORAGE_KEY))) return true;
   } catch {}
   try {
-    const session = window.sessionStorage.getItem(SESSION_STORAGE_KEY);
-    if (session === SESSION_TOKEN_VALUE) return true;
+    if (checkToken(window.sessionStorage.getItem(SESSION_STORAGE_KEY))) return true;
   } catch {}
   return false;
 }
 
 export function persistAuthenticatedSession(rememberMe: boolean): void {
+  const duration = rememberMe ? 7 * 24 * 3600 * 1000 : 12 * 3600 * 1000; // 7 días con 'Recordar' o 12h
+  const payload = JSON.stringify({
+    token: SESSION_TOKEN_VALUE,
+    expiresAt: Date.now() + duration
+  });
+
   try {
     if (rememberMe) {
-      window.localStorage.setItem(SESSION_STORAGE_KEY, SESSION_TOKEN_VALUE);
+      window.localStorage.setItem(SESSION_STORAGE_KEY, payload);
     } else {
       window.localStorage.removeItem(SESSION_STORAGE_KEY);
     }
   } catch {}
   try {
-    window.sessionStorage.setItem(SESSION_STORAGE_KEY, SESSION_TOKEN_VALUE);
+    window.sessionStorage.setItem(SESSION_STORAGE_KEY, payload);
   } catch {}
 }
 
@@ -156,4 +280,63 @@ export function clearAuthenticatedSession(): void {
   try {
     window.sessionStorage.removeItem(SESSION_STORAGE_KEY);
   } catch {}
+}
+
+/* =========================================================================
+   PROTECCIÓN Y PIN DE ACCESO PARA CONDUCTORES (FASE 3)
+   ========================================================================= */
+
+export function getRouteDailyPin(routeId: number, dateKey?: string): string {
+  const d = dateKey || new Date().toISOString().slice(0, 10);
+  const str = `${AUTH_SALT}:route-${routeId}:${d}`;
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = (hash << 5) - hash + str.charCodeAt(i);
+    hash |= 0;
+  }
+  const positive = Math.abs(hash);
+  const pinNum = 1000 + (positive % 9000); // Siempre 4 dígitos (1000 - 9999)
+  return String(pinNum);
+}
+
+export function isDriverSessionAuthenticated(routeId: number, dateKey?: string): boolean {
+  const d = dateKey || new Date().toISOString().slice(0, 10);
+  const key = `rutasjamar_driver_auth_${routeId}_${d}`;
+  try {
+    return window.sessionStorage.getItem(key) === 'valid';
+  } catch {}
+  return false;
+}
+
+export function persistDriverSession(routeId: number, dateKey?: string): void {
+  const d = dateKey || new Date().toISOString().slice(0, 10);
+  const key = `rutasjamar_driver_auth_${routeId}_${d}`;
+  try {
+    window.sessionStorage.setItem(key, 'valid');
+  } catch {}
+}
+
+export function verifyDriverPin(
+  routeId: number,
+  enteredPin: string,
+  plate: string = '',
+  dateKey?: string
+): boolean {
+  const cleanPin = String(enteredPin || '').trim();
+  if (!cleanPin) return false;
+
+  const validPin = getRouteDailyPin(routeId, dateKey);
+  if (cleanPin === validPin) {
+    persistDriverSession(routeId, dateKey);
+    return true;
+  }
+
+  // También se admite como comodín de respaldo los números de la placa asignada
+  const plateDigits = plate.replace(/\D/g, '');
+  if (plateDigits && cleanPin === plateDigits) {
+    persistDriverSession(routeId, dateKey);
+    return true;
+  }
+
+  return false;
 }

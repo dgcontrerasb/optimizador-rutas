@@ -10,7 +10,7 @@ import {
   LockKeyhole,
   AlertCircle
 } from 'lucide-react';
-import { verifyCredentials, persistAuthenticatedSession } from '../services/auth';
+import { verifyCredentialsWithDetails, persistAuthenticatedSession, getLoginLockoutStatus } from '../services/auth';
 
 export type SplitCurtainState = 'closed' | 'opening';
 
@@ -36,6 +36,12 @@ export const LoginView: React.FC<LoginViewProps> = ({
     e.preventDefault();
     setErrorMsg(null);
 
+    const lockout = getLoginLockoutStatus();
+    if (lockout.locked) {
+      setErrorMsg(`Acceso bloqueado por seguridad. Espera ${lockout.remainingMinutes} minuto(s) antes de reintentar.`);
+      return;
+    }
+
     if (!username.trim() || !password.trim()) {
       setErrorMsg('Por favor ingresa tu usuario y contraseña operativa.');
       return;
@@ -43,14 +49,14 @@ export const LoginView: React.FC<LoginViewProps> = ({
 
     setIsSubmitting(true);
     setTimeout(() => {
-      const isValid = verifyCredentials(username, password);
-      if (isValid) {
+      const result = verifyCredentialsWithDetails(username, password);
+      if (result.success) {
         persistAuthenticatedSession(rememberMe);
         setIsSubmitting(false);
         onLoginSuccess();
       } else {
         setIsSubmitting(false);
-        setErrorMsg('Credenciales inválidas. Verifica tu usuario y contraseña de coordinador.');
+        setErrorMsg(result.error || 'Credenciales inválidas. Verifica tu usuario y contraseña de coordinador.');
       }
     }, 150);
   };

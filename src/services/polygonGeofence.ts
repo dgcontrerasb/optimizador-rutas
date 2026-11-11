@@ -3,7 +3,7 @@ import { PhysicalDestination } from '../types';
 import { esc, S, toast } from '../state/store';
 import { active, alternatives, avgDistToCluster, clusterStrictZones, deduplicateFleetStops, isReturnDepot, vol } from './routing';
 import { syncAllRoutesRealDistance } from './osrm';
-import { classifyZone } from '../config/zones';
+import { classifyZone, hav } from '../config/zones';
 import { draw, drawAllRoutes } from '../map/leafletMap';
 import { renderRoutes } from '../ui/routeCards';
 import { withJamarLoader } from '../ui/loader';
@@ -75,10 +75,66 @@ export function getDestinationsInsidePolygon(
   const lockedIds = omitLockedLassoStops ? getLockedLassoStopIds() : new Set<number>();
 
   return S.destinations.filter(d => {
-    if (!d.lat || !d.lng || d.vol > MAX_VOL) return false;
+    if (!d.lat || !d.lng) return false;
     if (omitLockedLassoStops && lockedIds.has(d.id)) return false;
     return isPointInPolygon(d.lat, d.lng, vertices);
   });
+}
+
+/**
+ * Agrupa las paradas encerradas en el polígono.
+ * Si las paradas caben en un camión Jamar (hasta 15 paradas y hasta 18 m³),
+ * se respeta fielmente la selección del usuario creando 1 SOLA RUTA UNIFICADA.
+ * Si supera 15 paradas o 18 m³, se agrupan por cercanía respetando los topes duros máximos.
+ */
+export function groupPolygonStops(stops: PhysicalDestination[]): PhysicalDestination[][] {
+  if (!stops || !stops.length) return [];
+  const totalVol = vol(stops);
+
+  // Si cabe completo en un camión Jamar, 1 sola ruta exacta
+  if (stops.length <= MAX_DEST && totalVol <= MAX_VOL) {
+    return [stops];
+  }
+
+  // Si excede 15 paradas o 18 m³, particionar por proximidad con tope duro MAX_DEST (15) y MAX_VOL (18)
+  const unassigned = [...stops];
+  const clusters: PhysicalDestination[][] = [];
+
+  while (unassigned.length) {
+    unassigned.sort((a, b) => hav(DEPOT.lat, DEPOT.lng, b.lat!, b.lng!) - hav(DEPOT.lat, DEPOT.lng, a.lat!, a.lng!));
+    const seed = unassigned.shift()!;
+    const cluster = [seed];
+
+    let found = true;
+    while (found && cluster.length < MAX_DEST && vol(cluster) < MAX_VOL) {
+      found = false;
+      const cLat = cluster.reduce((sum, x) => sum + x.lat!, 0) / cluster.length;
+      const cLng = cluster.reduce((sum, x) => sum + x.lng!, 0) / cluster.length;
+
+      let bestIdx = -1;
+      let bestScore = Infinity;
+
+      for (let i = 0; i < unassigned.length; i++) {
+        const cand = unassigned[i];
+        if (vol(cluster) + cand.vol > MAX_VOL) continue;
+        if (cluster.length + 1 > MAX_DEST) continue;
+
+        const d = hav(cLat, cLng, cand.lat!, cand.lng!);
+        if (d < bestScore) {
+          bestScore = d;
+          bestIdx = i;
+        }
+      }
+
+      if (bestIdx !== -1) {
+        cluster.push(unassigned.splice(bestIdx, 1)[0]);
+        found = true;
+      }
+    }
+    clusters.push(cluster);
+  }
+
+  return clusters;
 }
 
 export function toggleRouteLassoLock(routeId: number, ev?: Event): void {
@@ -408,11 +464,11 @@ export async function createRoutesFromPolygon(): Promise<void> {
     const lockedStopIds = getLockedLassoStopIds();
     const insideIds = new Set(insideStops.map(s => s.id));
 
-    // 2. Agrupar los clientes encerrados en nuevas rutas blindadas
+    // 2. Agrupar los clientes encerrados en nuevas rutas blindadas (respetando hasta 15 paradas / 18 m³ en 1 ruta)
     insideStops.forEach(d => {
       d.zone = classifyZone(d);
     });
-    const newLassoGroups = clusterStrictZones(insideStops);
+    const newLassoGroups = groupPolygonStops(insideStops);
     const newLassoRoutes = newLassoGroups.map(stops => {
       const x = alternatives(stops);
       return {
@@ -426,7 +482,7 @@ export async function createRoutesFromPolygon(): Promise<void> {
     });
 
     // 3. Re-agrupar los destinos restantes desbloqueados
-    const validAll = (S.destinations || []).filter(d => d.lat && d.lng && d.vol <= MAX_VOL);
+    const validAll = (S.destinations || []).filter(d => d.lat && d.lng);
     const remainingUnlockedStops = validAll.filter(d => !lockedStopIds.has(d.id) && !insideIds.has(d.id));
     remainingUnlockedStops.forEach(d => {
       d.zone = classifyZone(d);
@@ -484,7 +540,7 @@ export async function isolateSinglePolygon(): Promise<void> {
     insideStops.forEach(d => {
       d.zone = classifyZone(d);
     });
-    const newLassoGroups = clusterStrictZones(insideStops);
+    const newLassoGroups = groupPolygonStops(insideStops);
     const newLassoRoutes = newLassoGroups.map(stops => {
       const x = alternatives(stops);
       return {
@@ -806,7 +862,9 @@ export function renderPolygonsOnMap(): void {
 
   polygonState.polygons.forEach(p => {
     const inside = getDestinationsInsidePolygon(p.vertices, true);
-    const totalVol = inside.reduce((sum, s) => sum + s.vol, 0);
+    const totalVol = vol(inside);
+    const totalDeliveries = inside.reduce((sum, s) => sum + ((s as any).entregas?.length || 1), 0);
+    const deliveryDetail = totalDeliveries > inside.length ? ` (${totalDeliveries} entregas)` : '';
 
     const polyLayer = L.polygon(p.vertices, {
       color: p.color || '#EA580C',
@@ -826,7 +884,7 @@ export function renderPolygonsOnMap(): void {
         html: `
           <div style="background:rgba(15,23,42,0.92);color:#FFFFFF;border:2px solid #EA580C;border-radius:9999px;padding:4px 10px;font-size:11px;font-weight:800;white-space:nowrap;box-shadow:0 4px 12px rgba(0,0,0,0.4);transform:translate(-50%, -50%);display:inline-flex;align-items:center;gap:5px;pointer-events:none;">
             <span>📐 ${p.name}</span>
-            <span style="color:#FB923C;">${inside.length} clientes · ${totalVol.toFixed(1)}m³</span>
+            <span style="color:#FB923C;">${inside.length} paradas${deliveryDetail} · ${totalVol.toFixed(1)}m³</span>
           </div>
         `,
         iconSize: [0, 0]
@@ -856,7 +914,9 @@ export function renderPolygonToolbarUI(): void {
     if (polygonState.isDrawing) {
       const vCount = polygonState.currentVertices.length;
       const inside = vCount >= 3 ? getDestinationsInsidePolygon(polygonState.currentVertices, true) : [];
-      const totalVol = inside.reduce((sum, s) => sum + s.vol, 0);
+      const totalVol = vol(inside);
+      const totalDeliveries = inside.reduce((sum, s) => sum + ((s as any).entregas?.length || 1), 0);
+      const deliveryDetail = totalDeliveries > inside.length ? ` (${totalDeliveries} entregas)` : '';
 
       mapBar.innerHTML = `
         <div class="inline-flex items-center gap-2 bg-white/95 dark:bg-slate-800/95 backdrop-blur-md border border-orange-300 dark:border-orange-600/60 px-3 py-1.5 rounded-full shadow-lg text-[11px] text-slate-800 dark:text-slate-100 flex-wrap">
@@ -864,7 +924,7 @@ export function renderPolygonToolbarUI(): void {
             <span class="animate-pulse">●</span>
             <span>Dibujando Lazo (${vCount} pts)</span>
           </span>
-          ${vCount >= 3 ? `<span class="px-2 py-0.5 rounded-full bg-orange-100 dark:bg-orange-950 text-orange-900 dark:text-orange-200 font-bold whitespace-nowrap">${inside.length} clientes · ${totalVol.toFixed(1)} m³</span>` : '<span class="text-slate-400 italic">Haz clic en el mapa para agregar esquinas</span>'}
+          ${vCount >= 3 ? `<span class="px-2 py-0.5 rounded-full bg-orange-100 dark:bg-orange-950 text-orange-900 dark:text-orange-200 font-bold whitespace-nowrap">${inside.length} paradas${deliveryDetail} · ${totalVol.toFixed(1)} m³</span>` : '<span class="text-slate-400 italic">Haz clic en el mapa para agregar esquinas</span>'}
           <div class="flex items-center gap-1.5 ml-1">
             ${vCount >= 3 ? `<button type="button" onclick="window.finishPolygonDrawing && window.finishPolygonDrawing()" class="px-3 py-1 rounded-full bg-[#EA580C] hover:bg-[#D94E06] text-white font-bold transition shadow-xs cursor-pointer">✓ Cerrar Lazo</button>` : ''}
             ${vCount > 0 ? `<button type="button" onclick="window.undoLastDrawingVertex && window.undoLastDrawingVertex(event)" class="px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-semibold transition cursor-pointer" title="Deshacer último punto">↶ Deshacer</button>` : ''}
@@ -875,7 +935,9 @@ export function renderPolygonToolbarUI(): void {
     } else if (polygonState.polygons.length > 0) {
       const p = polygonState.polygons[0];
       const inside = getDestinationsInsidePolygon(p.vertices, true);
-      const totalVol = inside.reduce((sum, s) => sum + s.vol, 0);
+      const totalVol = vol(inside);
+      const totalDeliveries = inside.reduce((sum, s) => sum + ((s as any).entregas?.length || 1), 0);
+      const deliveryDetail = totalDeliveries > inside.length ? ` (${totalDeliveries} entregas)` : '';
 
       // Opciones de rutas disponibles para mover
       const routeOptions = (S.routes || [])
@@ -891,7 +953,7 @@ export function renderPolygonToolbarUI(): void {
           <div class="flex items-center gap-1.5 font-bold">
             <span class="text-orange-500 text-sm">📐</span>
             <span>Lazo Cerrado:</span>
-            <span class="text-[#EA580C] font-extrabold whitespace-nowrap">${inside.length} clientes · ${totalVol.toFixed(1)} m³</span>
+            <span class="text-[#EA580C] font-extrabold whitespace-nowrap">${inside.length} paradas${deliveryDetail} · ${totalVol.toFixed(1)} m³</span>
           </div>
 
           <div class="flex items-center gap-1.5 flex-wrap">

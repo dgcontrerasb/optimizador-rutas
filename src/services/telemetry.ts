@@ -2,6 +2,7 @@ import { DEPOT } from '../config/constants';
 import { draw } from '../map/leafletMap';
 import { esc, S, toast } from '../state/store';
 import { active } from './routing';
+import { getRouteDailyPin, isDriverSessionAuthenticated, persistDriverSession, verifyDriverPin } from './auth';
 
 declare const L: any;
 
@@ -128,7 +129,10 @@ export function getFirebaseAuthSecret(): string {
   return '';
 }
 
+let firebaseAuthDisabled = false;
+
 export function buildFirebaseUrl(endpoint: string): string {
+  if (firebaseAuthDisabled) return '';
   const fbUrl = getFirebaseDatabaseUrl();
   if (!fbUrl) return '';
   const cleanUrl = fbUrl.replace(/\/+$/, '');
@@ -136,6 +140,17 @@ export function buildFirebaseUrl(endpoint: string): string {
   const sep = endpoint.includes('?') ? '&' : '?';
   const authParam = secret ? `${sep}auth=${encodeURIComponent(secret)}` : '';
   return `${cleanUrl}${endpoint}${authParam}`;
+}
+
+export function handleFirebaseResponseStatus(status: number): void {
+  if (status === 401 || status === 403) {
+    if (!firebaseAuthDisabled) {
+      firebaseAuthDisabled = true;
+      console.warn(
+        '[Firebase] Acceso a la base de datos no autorizado (401/403). La sincronización en la nube se ha pausado para evitar saturación de consola. Para reactivarla, agrega VITE_FIREBASE_AUTH_SECRET en Vercel o ajusta las reglas de seguridad en Firebase Console.'
+      );
+    }
+  }
 }
 
 export function getTodayDateKey(): string {
@@ -194,7 +209,11 @@ export function saveBitacoraRecord(entry: Omit<BitacoraEntry, 'id' | 'date'>): v
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(fullEntry)
-    }).catch(() => {});
+    })
+      .then(r => {
+        if (!r.ok) handleFirebaseResponseStatus(r.status);
+      })
+      .catch(() => {});
   }
 }
 
@@ -221,7 +240,13 @@ export function purgeOldBitacoraRecords(): void {
   const checkUrl = buildFirebaseUrl('/telemetria.json?shallow=true');
   if (checkUrl) {
     fetch(checkUrl)
-      .then(r => r.json())
+      .then(r => {
+        if (!r.ok) {
+          handleFirebaseResponseStatus(r.status);
+          return null;
+        }
+        return r.json();
+      })
       .then(datesObj => {
         if (datesObj && typeof datesObj === 'object') {
           Object.keys(datesObj).forEach(d => {
@@ -248,7 +273,11 @@ export function syncTruckToCloud(truck: TruckTelemetry): void {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(truck)
-  }).catch(() => {});
+  })
+    .then(r => {
+      if (!r.ok) handleFirebaseResponseStatus(r.status);
+    })
+    .catch(() => {});
 }
 
 export async function pullTelemetryFromCloud(): Promise<void> {
@@ -257,26 +286,28 @@ export async function pullTelemetryFromCloud(): Promise<void> {
   if (!targetUrl) return;
   try {
     const res = await fetch(targetUrl);
-    if (res.ok) {
-      const data = await res.json();
-      if (data && typeof data === 'object') {
-        let changed = false;
-        Object.values(data).forEach((truck: any) => {
-          if (truck && truck.truckId) {
-            const local = telemetryState.trucks.get(truck.truckId);
-            if (!local || (truck.updatedAt && truck.updatedAt >= (local.updatedAt || 0))) {
-              telemetryState.trucks.set(truck.truckId, truck);
-              changed = true;
-            }
+    if (!res.ok) {
+      handleFirebaseResponseStatus(res.status);
+      return;
+    }
+    const data = await res.json();
+    if (data && typeof data === 'object') {
+      let changed = false;
+      Object.values(data).forEach((truck: any) => {
+        if (truck && truck.truckId) {
+          const local = telemetryState.trucks.get(truck.truckId);
+          if (!local || (truck.updatedAt && truck.updatedAt >= (local.updatedAt || 0))) {
+            telemetryState.trucks.set(truck.truckId, truck);
+            changed = true;
           }
-        });
-        if (changed) {
-          if (!telemetryState.driverIsTransmitting) {
-            syncLocalDriverStateFromLiveTruck(telemetryState.driverSelectedRouteId);
-          }
-          renderTelemetryOnMap();
-          renderTelemetryPanelUI();
         }
+      });
+      if (changed) {
+        if (!telemetryState.driverIsTransmitting) {
+          syncLocalDriverStateFromLiveTruck(telemetryState.driverSelectedRouteId);
+        }
+        renderTelemetryOnMap();
+        renderTelemetryPanelUI();
       }
     }
 
@@ -294,6 +325,8 @@ export async function pullTelemetryFromCloud(): Promise<void> {
             }
             renderTelemetryPanelUI();
           }
+        } else {
+          handleFirebaseResponseStatus(routesRes.status);
         }
       }
     }
@@ -692,7 +725,11 @@ export function publishRoutesToTelemetryServer(): void {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(serialized)
-    }).catch(() => {});
+    })
+      .then(r => {
+        if (!r.ok) handleFirebaseResponseStatus(r.status);
+      })
+      .catch(() => {});
   }
 
   if (wsClient && wsClient.readyState === WebSocket.OPEN) {
@@ -807,15 +844,17 @@ export function focusTruckOnMap(truckId: string): void {
 export function copyDriverLinkForRoute(routeId: number): void {
   publishRoutesToTelemetryServer();
   const plate = `JMR-${101 + routeId}`;
-  const url = `${window.location.origin}${window.location.pathname}?modo=conductor&ruta=${routeId + 1}&placa=${encodeURIComponent(plate)}&bloqueado=1`;
+  const pin = getRouteDailyPin(routeId);
+  const dateKey = getTodayDateKey();
+  const url = `${window.location.origin}${window.location.pathname}?modo=conductor&ruta=${routeId + 1}&placa=${encodeURIComponent(plate)}&fecha=${dateKey}&bloqueado=1`;
   if (navigator.clipboard && navigator.clipboard.writeText) {
     navigator.clipboard.writeText(url).then(() => {
-      toast(`📲 Link exclusivo del Conductor (Ruta ${routeId + 1}) copiado. Al abrirlo en el móvil tendrá sus controles habilitados.`, 'success');
+      toast(`📲 Link del Conductor copiado. PIN de acceso: ${pin} (o placa ${plate}).`, 'success');
     }).catch(() => {
-      toast(`Enlace de conductor: ${url}`, 'info');
+      toast(`Enlace del conductor: ${url} (PIN: ${pin})`, 'info');
     });
   } else {
-    toast(`Enlace de conductor: ${url}`, 'info');
+    toast(`Enlace del conductor: ${url} (PIN: ${pin})`, 'info');
   }
 }
 
@@ -911,6 +950,107 @@ export function centerDriverAssignedRoute(): void {
   }, 180);
 }
 
+export function showDriverExpiredScreen(): void {
+  let modal = document.getElementById('driverExpiredModal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'driverExpiredModal';
+    modal.className = 'fixed inset-0 z-[99999] bg-[#0F172A] flex flex-col items-center justify-center p-6 text-center select-none';
+    document.body.appendChild(modal);
+  }
+  modal.innerHTML = `
+    <div class="max-w-md w-full bg-[#1E293B] border border-rose-500/40 rounded-3xl p-8 space-y-4 shadow-2xl">
+      <div class="w-16 h-16 rounded-full bg-rose-500/20 text-rose-400 flex items-center justify-center text-3xl mx-auto">
+        ⏳
+      </div>
+      <h2 class="text-xl font-black text-white">Enlace de Viaje Expirado</h2>
+      <p class="text-sm text-slate-300 leading-relaxed">
+        Por políticas de seguridad y protección de datos de Jamar, los enlaces de ruta móvil caducan a las 48 horas de su emisión.
+      </p>
+      <div class="p-3 rounded-2xl bg-slate-900/60 border border-slate-700 text-xs text-slate-400 font-medium">
+        Comunícate con tu Coordinador de Despacho en <b>Cendis Siberia</b> para generar una nueva hoja de ruta activa.
+      </div>
+    </div>
+  `;
+}
+
+export function showDriverPinGate(routeId: number, plate: string, dateKey: string): void {
+  let modal = document.getElementById('driverPinGateModal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'driverPinGateModal';
+    modal.className = 'fixed inset-0 z-[99998] bg-[#0F172A]/95 backdrop-blur-md flex flex-col items-center justify-center p-4 select-none';
+    document.body.appendChild(modal);
+  }
+  modal.style.display = 'flex';
+
+  modal.innerHTML = `
+    <div class="max-w-sm w-full bg-[#1E293B] border border-orange-500/40 rounded-3xl p-6 sm:p-8 space-y-5 shadow-2xl text-center">
+      <div class="w-14 h-14 rounded-2xl bg-[#EA580C]/20 border border-[#EA580C]/40 text-[#EA580C] flex items-center justify-center text-2xl mx-auto shadow-inner">
+        🔒
+      </div>
+      <div>
+        <span class="px-3 py-1 rounded-full text-[11px] font-extrabold bg-[#EA580C]/20 text-[#EA580C] border border-[#EA580C]/30">
+          HOJA DE RUTA ${routeId + 1}
+        </span>
+        <h2 class="text-lg font-black text-white mt-2">Acceso Seguro de Conductor</h2>
+        <p class="text-xs text-slate-400 mt-1">Placa asignada: <strong class="text-white font-mono">${esc(plate)}</strong></p>
+      </div>
+
+      <p class="text-xs text-slate-300 leading-relaxed">
+        Ingresa el <b>PIN de 4 dígitos</b> entregado por Despacho para desbloquear tu hoja de entrega:
+      </p>
+
+      <form id="driverPinForm" class="space-y-3">
+        <input
+          id="driverPinInput"
+          type="password"
+          inputmode="numeric"
+          pattern="[0-9]*"
+          maxlength="6"
+          placeholder="••••"
+          autofocus
+          class="w-full text-center text-2xl tracking-[0.4em] font-mono font-bold py-3 px-4 rounded-2xl bg-slate-900 border border-slate-700 text-white placeholder-slate-600 focus:outline-none focus:border-[#EA580C] focus:ring-2 focus:ring-[#EA580C]/30 transition"
+        />
+        <div id="driverPinError" class="text-xs font-semibold text-rose-400 min-h-[18px]"></div>
+
+        <button
+          type="submit"
+          class="w-full py-3 px-4 rounded-2xl bg-[#EA580C] hover:bg-[#D94E06] text-white font-extrabold text-sm shadow-lg shadow-orange-600/30 transition cursor-pointer flex items-center justify-center gap-2"
+        >
+          <span>✓</span>
+          <span>Desbloquear Mi Viaje</span>
+        </button>
+      </form>
+
+      <div class="text-[10px] text-slate-500 pt-2 border-t border-slate-800">
+        ¿No tienes el PIN? Solicítalo a Central Cendis Siberia o introduce los números de tu placa.
+      </div>
+    </div>
+  `;
+
+  const form = document.getElementById('driverPinForm') as HTMLFormElement | null;
+  const input = document.getElementById('driverPinInput') as HTMLInputElement | null;
+  const errEl = document.getElementById('driverPinError');
+
+  if (form && input) {
+    form.onsubmit = (e) => {
+      e.preventDefault();
+      const val = input.value.trim();
+      const ok = verifyDriverPin(routeId, val, plate, dateKey);
+      if (ok) {
+        modal!.style.display = 'none';
+        toast('✅ Acceso validado. Hoja de viaje desbloqueada.', 'success');
+        renderTelemetryPanelUI();
+      } else {
+        if (errEl) errEl.textContent = '❌ PIN incorrecto. Intenta con los números de tu placa o consulta a Despacho.';
+        input.value = '';
+        input.focus();
+      }
+    };
+  }
+}
+
 export function enterDriverExclusiveMode(routeId?: number, lockedByUrl = false): void {
   if (typeof routeId === 'number' && routeId >= 0) {
     telemetryState.driverSelectedRouteId = routeId;
@@ -919,6 +1059,32 @@ export function enterDriverExclusiveMode(routeId?: number, lockedByUrl = false):
   }
   if (lockedByUrl) {
     telemetryState.isDriverLockedByUrl = true;
+
+    // Validación de seguridad y PIN de Viaje
+    const urlParams = new URLSearchParams(window.location.search);
+    const dateParam = urlParams.get('fecha');
+    const todayStr = getTodayDateKey();
+
+    // 1. Verificar si el enlace tiene más de 48 horas de antigüedad
+    if (dateParam) {
+      const diffMs = Math.abs(new Date(todayStr).getTime() - new Date(dateParam).getTime());
+      const diffDays = diffMs / (1000 * 3600 * 24);
+      if (diffDays > 2) {
+        showDriverExpiredScreen();
+        return;
+      }
+    }
+
+    // 2. Comprobar si ya está autenticado en la sesión del navegador
+    const activeRouteId = telemetryState.driverSelectedRouteId;
+    const urlPin = urlParams.get('pin');
+    const targetDate = dateParam || todayStr;
+
+    if (urlPin && verifyDriverPin(activeRouteId, urlPin, telemetryState.driverPlate, targetDate)) {
+      persistDriverSession(activeRouteId, targetDate);
+    } else if (!isDriverSessionAuthenticated(activeRouteId, targetDate)) {
+      showDriverPinGate(activeRouteId, telemetryState.driverPlate, targetDate);
+    }
   } else if (!telemetryState.isDriverLockedByUrl) {
     // Al entrar desde el panel de Administrador, activar siempre el candado de solo lectura por seguridad
     telemetryState.adminOverrideUnlocked = false;
@@ -2244,8 +2410,21 @@ export function connectTelemetrySocket(): void {
     };
   }
 
+  // Comprobar si existe un servidor WebSocket real disponible.
+  // En Vercel y hosts serverless estáticos no corre un servidor WS local en /ws/telemetry.
+  // Solo conectar si estamos en localhost / entorno local o si se configuró explícitamente VITE_WS_TELEMETRY_URL.
+  const isLocalHost = typeof window !== 'undefined' && 
+    (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+  const customWsUrl = (import.meta as any).env?.VITE_WS_TELEMETRY_URL || 
+    (typeof window !== 'undefined' && (window as any).__APP_CONFIG__?.WS_TELEMETRY_URL);
+
+  if (!isLocalHost && !customWsUrl) {
+    // Modo estático en producción (Vercel): la sincronización funciona mediante BroadcastChannel y Firebase REST
+    return;
+  }
+
   const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-  const wsUrl = `${proto}//${window.location.host}/ws/telemetry`;
+  const wsUrl = customWsUrl || `${proto}//${window.location.host}/ws/telemetry`;
 
   try {
     wsClient = new WebSocket(wsUrl);
