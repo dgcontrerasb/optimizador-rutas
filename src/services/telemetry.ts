@@ -3,6 +3,7 @@ import { draw } from '../map/leafletMap';
 import { esc, S, toast } from '../state/store';
 import { active } from './routing';
 import { getRouteDailyPin, isDriverSessionAuthenticated, persistDriverSession, verifyDriverPin } from './auth';
+import { isDailyRoutesConfirmed } from './dailyShift';
 
 declare const L: any;
 
@@ -505,7 +506,7 @@ export async function downloadBitacoraReport(day: string = 'hoy'): Promise<void>
   toast(`📥 Bitácora de Entregas (${targetDate}) descargada con éxito (${entries.length} eventos).`, 'success');
 }
 
-function addDriverLogEvent(text: string, status = telemetryState.driverStatus): void {
+export function addDriverLogEvent(text: string, status = telemetryState.driverStatus): void {
   const entry = {
     time: nowTimeStr(),
     text,
@@ -937,6 +938,10 @@ export function focusTruckOnMap(truckId: string): void {
 }
 
 export function copyDriverLinkForRoute(routeId: number): void {
+  if (!isDailyRoutesConfirmed()) {
+    toast('⚠️ Primero debes pulsar "🚀 Confirmar y Fijar Rutas Oficiales del Día" antes de enviar enlaces a los conductores.', 'warn');
+    return;
+  }
   publishRoutesToTelemetryServer();
   const plate = `JMR-${101 + routeId}`;
   const pin = getRouteDailyPin(routeId);

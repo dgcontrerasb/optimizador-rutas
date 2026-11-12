@@ -3,8 +3,10 @@ import { createRoot, Root } from 'react-dom/client';
 import { LoginView, SplitCurtainState } from '../components/LoginView';
 import {
   clearAuthenticatedSession,
-  isSessionAuthenticated
+  isSessionAuthenticated,
+  initInactivityWatcher
 } from '../services/auth';
+import { restoreConfirmedDailyRoutesOnStartup } from '../services/dailyShift';
 import { S, toast } from '../state/store';
 
 let loginReactRoot: Root | null = null;
@@ -79,6 +81,7 @@ export function animateLoginSplitCurtainOpen(): void {
     }
     isTransitioning = false;
     toast('Acceso autorizado · Consola de Despacho Cendis Siberia', 'success');
+    restoreConfirmedDailyRoutesOnStartup();
   }, 1150);
 }
 
@@ -170,6 +173,12 @@ export function initAuthGate(): void {
     };
   }
 
+  // Activar monitor de inactividad (25 minutos) para proteger la consola del coordinador
+  initInactivityWatcher((reason: string) => {
+    handleLogout();
+    toast(reason, 'warn');
+  });
+
   // Si un conductor abre el enlace directo (?modo=conductor&ruta=1), entra directo a su Terminal Exclusiva bloqueada
   const params = new URLSearchParams(window.location.search);
   if (params.get('modo') === 'conductor') {
@@ -179,6 +188,7 @@ export function initAuthGate(): void {
 
   if (isSessionAuthenticated()) {
     showConsoleView();
+    restoreConfirmedDailyRoutesOnStartup();
   } else {
     showLoginView();
   }

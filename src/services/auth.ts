@@ -393,6 +393,76 @@ export function clearAuthenticatedSession(): void {
   } catch {}
 }
 
+// =========================================================================
+// CONTROL DE INACTIVIDAD AUTOMÁTICO (CIERRE DE SESIÓN POR INACTIVIDAD)
+// =========================================================================
+export const INACTIVITY_TIMEOUT_MS = 25 * 60 * 1000; // 25 minutos
+const LAST_ACTIVITY_KEY = 'rutasjamar_last_activity_ts';
+
+let inactivityWatcherInitialized = false;
+
+export function recordUserActivity(): void {
+  const now = Date.now();
+  try {
+    sessionStorage.setItem(LAST_ACTIVITY_KEY, String(now));
+  } catch {}
+}
+
+export function getLastUserActivity(): number {
+  try {
+    const raw = sessionStorage.getItem(LAST_ACTIVITY_KEY);
+    if (raw) {
+      const ts = Number(raw);
+      if (Number.isFinite(ts) && ts > 0) return ts;
+    }
+  } catch {}
+  return Date.now();
+}
+
+export function initInactivityWatcher(onTimeout: (reason: string) => void): void {
+  if (inactivityWatcherInitialized || typeof window === 'undefined') return;
+  inactivityWatcherInitialized = true;
+
+  recordUserActivity();
+
+  // Escuchar interacciones del usuario de manera eficiente (throttled a 5 segundos)
+  let lastRecorded = 0;
+  const handleActivity = () => {
+    const now = Date.now();
+    if (now - lastRecorded > 5000) {
+      lastRecorded = now;
+      recordUserActivity();
+    }
+  };
+
+  const activityEvents = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll', 'click'];
+  activityEvents.forEach(evt => {
+    window.addEventListener(evt, handleActivity, { passive: true });
+  });
+
+  // Verificador periódico cada 15 segundos
+  setInterval(() => {
+    // Si la URL es la terminal del conductor (?modo=conductor), nunca cerrar por inactividad
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('modo') === 'conductor') return;
+
+    if (!isSessionAuthenticated()) return;
+
+    const lastAct = getLastUserActivity();
+    const elapsed = Date.now() - lastAct;
+    if (elapsed >= INACTIVITY_TIMEOUT_MS) {
+      clearAuthenticatedSession();
+      try {
+        sessionStorage.setItem(
+          'rutasjamar_logout_reason',
+          'Tu sesión se cerró automáticamente por inactividad (25 minutos) para proteger la seguridad de Cendis Siberia.'
+        );
+      } catch {}
+      onTimeout('Tu sesión se cerró automáticamente por inactividad (25 minutos).');
+    }
+  }, 15000);
+}
+
 /* =========================================================================
    PROTECCIÓN Y PIN DE ACCESO PARA CONDUCTORES (FASE 3)
    ========================================================================= */

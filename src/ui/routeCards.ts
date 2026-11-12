@@ -3,6 +3,7 @@ import { PhysicalDestination } from '../types';
 import { esc, S, toast } from '../state/store';
 import { active, alternatives, avgDistToCluster, clusterStrictZones, deduplicateFleetStops, isReturnDepot, vol } from '../services/routing';
 import { buildGoogleMapsUrl, getRouteEffectiveKm, syncAllRoutesRealDistance } from '../services/osrm';
+import { isDailyRoutesConfirmed } from '../services/dailyShift';
 import { draw, drawAllRoutes } from '../map/leafletMap';
 import { classifyZone, isZoneCompatible, normalizeInsensitive } from '../config/zones';
 import { withJamarLoader } from './loader';
@@ -87,7 +88,45 @@ export function renderRoutes(): void {
   const routesContainer = document.getElementById('routes');
   if (!routesContainer) return;
 
-  routesContainer.innerHTML = S.routes.map((r: any) => {
+  const isConfirmed = isDailyRoutesConfirmed();
+
+  const confirmationBannerHtml = isConfirmed ? `
+    <div class="p-3 mb-3.5 rounded-2xl border border-emerald-300 dark:border-emerald-700/80 bg-emerald-50/90 dark:bg-emerald-950/40 flex items-center justify-between gap-2 shadow-2xs">
+      <div class="flex items-center gap-2 min-w-0">
+        <span class="text-base shrink-0">📌</span>
+        <div class="min-w-0">
+          <div class="text-xs font-bold text-emerald-800 dark:text-emerald-300 flex items-center gap-1.5 flex-wrap">
+            <span>Rutas Oficiales Fijadas</span>
+            <span class="text-[9px] px-1.5 py-0.5 rounded-full bg-emerald-200 dark:bg-emerald-900 text-emerald-900 dark:text-emerald-200 font-extrabold uppercase tracking-wider">Activas Hoy</span>
+          </div>
+          <div class="text-[10px] text-emerald-700 dark:text-emerald-400 truncate">
+            ${S.routes.length} rutas en monitoreo · Enlaces habilitados
+          </div>
+        </div>
+      </div>
+      <button type="button" onclick="window.replanOrUploadNewFileModal && window.replanOrUploadNewFileModal()" class="px-2.5 py-1.5 rounded-xl border border-emerald-300 dark:border-emerald-700 bg-white dark:bg-slate-800 hover:bg-emerald-100 dark:hover:bg-slate-700 text-emerald-800 dark:text-emerald-200 text-[11px] font-bold cursor-pointer transition shrink-0" title="Modificar o cargar nuevo archivo">
+        🔄 Modificar
+      </button>
+    </div>
+  ` : `
+    <div class="p-3.5 mb-3.5 rounded-2xl border border-amber-300 dark:border-amber-700/80 bg-amber-50/90 dark:bg-amber-950/40 flex flex-col gap-2 shadow-2xs">
+      <div class="flex items-center justify-between gap-2">
+        <div class="flex items-center gap-2">
+          <span class="text-base shrink-0">⚠️</span>
+          <span class="text-xs font-bold text-amber-900 dark:text-amber-200">Rutas en Borrador</span>
+        </div>
+        <span class="text-[9px] px-2 py-0.5 rounded-full bg-amber-200 dark:bg-amber-900 text-amber-900 dark:text-amber-200 font-extrabold uppercase">Sin Confirmar</span>
+      </div>
+      <p class="text-[11px] text-amber-800 dark:text-amber-300/90 leading-relaxed">
+        Revisa la zonificación y paradas. Al terminar, <b>confirma el despacho oficial</b> para habilitar el seguimiento del día y autorizar los enlaces de los choferes.
+      </p>
+      <button type="button" onclick="window.confirmOfficialDailyRoutes && window.confirmOfficialDailyRoutes()" class="w-full py-2.5 px-3 rounded-xl bg-[#EA580C] hover:bg-[#D94E06] text-white text-xs font-extrabold shadow-sm flex items-center justify-center gap-2 cursor-pointer transition">
+        🚀 Confirmar y Fijar Rutas Oficiales del Día
+      </button>
+    </div>
+  `;
+
+  routesContainer.innerHTML = confirmationBannerHtml + S.routes.map((r: any) => {
     r.color = S.colors[r.id % S.colors.length];
     const st = active(r);
     const isAct = (S.viewMode !== 'all') && (r.id === S.currentRouteIndex);

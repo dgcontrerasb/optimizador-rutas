@@ -152,4 +152,5 @@ export interface GlobalAppState {
   routeDistributionMode: 'comfort' | 'max_capacity';
   colors: string[];
   isGeocoding?: boolean;
+  isRoutesConfirmedToday?: boolean;
 }

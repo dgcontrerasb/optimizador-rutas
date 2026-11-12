@@ -34,6 +34,16 @@ export const LoginView: React.FC<LoginViewProps> = ({
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [inactivityNotice, setInactivityNotice] = useState<string | null>(() => {
+    try {
+      const reason = sessionStorage.getItem('rutasjamar_logout_reason');
+      if (reason) {
+        sessionStorage.removeItem('rutasjamar_logout_reason');
+        return reason;
+      }
+    } catch {}
+    return null;
+  });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Modal de recuperación de contraseña
@@ -252,6 +262,13 @@ export const LoginView: React.FC<LoginViewProps> = ({
 
           {/* Formulario */}
           <form onSubmit={handleSubmit} className="space-y-5" noValidate>
+            {inactivityNotice && !errorMsg && (
+              <div className="flex items-center gap-2.5 p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs font-medium">
+                <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+                <span>{inactivityNotice}</span>
+              </div>
+            )}
+
             {errorMsg && (
               <div className="flex items-center gap-2.5 p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs font-medium">
                 <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />

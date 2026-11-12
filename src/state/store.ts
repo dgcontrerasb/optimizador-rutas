@@ -35,7 +35,8 @@ export const S: GlobalAppState = {
   routeViewStyle: 'completo',
   pinSize: (safeGet('rutasjamar_pin_size') as any) || 'micro',
   routeDistributionMode: (safeGet('rutasjamar_dist_mode') as any) || 'comfort',
-  colors: [...DEFAULT_COLORS]
+  colors: [...DEFAULT_COLORS],
+  isRoutesConfirmedToday: false
 };
 
 // Exponer en window.S para que todos los eventos del DOM y depuración tengan acceso directo
