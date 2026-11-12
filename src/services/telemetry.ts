@@ -1277,12 +1277,28 @@ export function enterDriverExclusiveMode(routeId?: number, lockedByUrl = false):
     addDriverLogEvent(`Terminal de Ruta ${telemetryState.driverSelectedRouteId + 1} lista para monitoreo`, telemetryState.driverStatus);
   }
 
+  // Si entra el chofer desde su celular, activar automáticamente la transmisión GPS y el vigilante de hardware
+  if (telemetryState.isDriverLockedByUrl) {
+    if (!telemetryState.driverIsTransmitting) {
+      startDriverGpsTransmission(true);
+    }
+    startDriverGpsHardwareWatchdog();
+    syncDriverGpsBlockingOverlay();
+  }
+
   renderTelemetryPanelUI();
 }
 
 export function exitDriverExclusiveMode(): void {
   telemetryState.isDriverExclusiveMode = false;
   telemetryState.adminOverrideUnlocked = false;
+
+  const overlay = document.getElementById('driverGpsBlockedOverlay');
+  if (overlay) overlay.remove();
+  if (driverGpsHardwareWatchdogId) {
+    clearInterval(driverGpsHardwareWatchdogId);
+    driverGpsHardwareWatchdogId = null;
+  }
 
   const darkSidebar = document.getElementById('mainDarkSidebar');
   const routesCol = document.getElementById('routesColumnPanel');
@@ -1415,6 +1431,135 @@ function buildDriverTelemetrySnapshot(): Partial<TruckTelemetry> & { truckId: st
   };
 }
 
+let driverGpsHardwareWatchdogId: any = null;
+
+export function syncDriverGpsBlockingOverlay(): void {
+  const overlayId = 'driverGpsBlockedOverlay';
+  let overlay = document.getElementById(overlayId);
+
+  // Solo aplica en la terminal exclusiva del conductor
+  if (!telemetryState.isDriverExclusiveMode) {
+    if (overlay) overlay.remove();
+    return;
+  }
+
+  // Si no está transmitiendo o el hardware GPS fue apagado o el permiso fue denegado
+  const isGpsProblem =
+    !telemetryState.driverIsTransmitting ||
+    telemetryState.driverGpsHardwareState === 'disabled_on_device' ||
+    telemetryState.driverGpsHardwareState === 'permission_denied';
+
+  if (!isGpsProblem) {
+    if (overlay) overlay.remove();
+    return;
+  }
+
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = overlayId;
+    overlay.className = 'fixed inset-0 z-[99999] bg-slate-950/95 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center text-white';
+    document.body.appendChild(overlay);
+  }
+
+  const isDenied = telemetryState.driverGpsHardwareState === 'permission_denied';
+  const title = isDenied ? 'PERMISO DE GPS DENEGADO' : 'GPS DEL CELULAR APAGADO';
+  const subtitle = isDenied
+    ? 'El navegador de tu teléfono no tiene permiso para acceder a tu ubicación. Debes conceder el permiso para registrar entregas y continuar.'
+    : 'Por políticas de auditoría y trazabilidad de <b>Cendis Siberia</b>, es <b>OBLIGATORIO</b> tener el GPS de tu celular encendido para operar y confirmar entregas.';
+
+  const steps = isDenied
+    ? `
+      <div class="font-bold text-amber-400 mb-1">¿Cómo solucionarlo?</div>
+      <div>1. Toca el candado o icono de ajustes al lado de la URL del navegador.</div>
+      <div>2. Cambia el permiso de <b>Ubicación</b> a <b>"Permitir"</b>.</div>
+      <div>3. Pulsa el botón abajo para continuar.</div>
+    `
+    : `
+      <div class="font-bold text-amber-400 mb-1">¿Cómo activarlo?</div>
+      <div>1. Desliza hacia abajo la barra de notificaciones de tu teléfono móvil.</div>
+      <div>2. Enciende el icono de <b>Ubicación / GPS</b>.</div>
+      <div>3. Si el navegador solicita permiso, pulsa <b>"Permitir"</b>.</div>
+    `;
+
+  overlay.innerHTML = `
+    <div class="max-w-sm w-full mx-auto flex flex-col items-center">
+      <div class="w-20 h-20 rounded-3xl bg-rose-500/20 text-rose-500 border border-rose-500/40 flex items-center justify-center text-4xl mb-4 animate-bounce">
+        📡
+      </div>
+      <span class="px-3 py-1 rounded-full bg-rose-500/20 text-rose-400 text-[10px] font-black uppercase tracking-widest mb-2 border border-rose-500/30">
+        Operación Bloqueada
+      </span>
+      <h2 class="text-xl font-black text-white mb-2 leading-tight">${title}</h2>
+      <p class="text-xs text-slate-300 mb-5 leading-relaxed">${subtitle}</p>
+
+      <div class="p-4 rounded-2xl bg-white/5 border border-white/10 text-xs text-slate-200 text-left w-full mb-6 space-y-1.5">
+        ${steps}
+      </div>
+
+      <button type="button" onclick="window.retryDriverGpsActivation && window.retryDriverGpsActivation()" class="w-full py-4 px-6 rounded-2xl bg-[#EA580C] hover:bg-[#D94E06] text-white font-black text-sm shadow-xl shadow-orange-600/40 transition active:scale-95 cursor-pointer flex items-center justify-center gap-2">
+        <span>🔄</span> Ya encendí el GPS / Reintentar
+      </button>
+      <p class="text-[10px] text-slate-400 mt-3">Ruta ${telemetryState.driverSelectedRouteId + 1} · Camión ${telemetryState.driverPlate}</p>
+    </div>
+  `;
+}
+
+export function retryDriverGpsActivation(): void {
+  toast('Verificando señal GPS del celular...', 'info');
+  startDriverGpsTransmission(true);
+}
+
+export function startDriverGpsHardwareWatchdog(): void {
+  if (driverGpsHardwareWatchdogId) clearInterval(driverGpsHardwareWatchdogId);
+  driverGpsHardwareWatchdogId = setInterval(() => {
+    if (!telemetryState.isDriverExclusiveMode) return;
+    if (!('geolocation' in navigator)) return;
+
+    navigator.geolocation.getCurrentPosition(
+      (_pos) => {
+        if (telemetryState.driverGpsHardwareState !== 'active') {
+          telemetryState.driverGpsHardwareState = 'active';
+          addDriverLogEvent('🟢 Señal GPS del celular restablecida por el conductor', telemetryState.driverStatus);
+          syncDriverGpsBlockingOverlay();
+          renderTelemetryPanelUI();
+        }
+      },
+      (err) => {
+        if (err.code === 2) { // POSITION_UNAVAILABLE -> Conductor apagó el GPS
+          if (telemetryState.driverGpsHardwareState !== 'disabled_on_device') {
+            telemetryState.driverGpsHardwareState = 'disabled_on_device';
+            telemetryState.driverStatus = 'detenido';
+            telemetryState.driverStatusNote = '🔴 GPS apagado en el teléfono móvil';
+            addDriverLogEvent('🔴 GPS del celular apagado / deshabilitado por el conductor', 'detenido');
+            const payload = buildDriverTelemetrySnapshot();
+            payload.status = 'detenido';
+            payload.statusNote = '🔴 GPS apagado en el teléfono móvil';
+            if (payload.speedKmh) payload.speedKmh = 0;
+            sendTelemetryUpdate(payload);
+            syncDriverGpsBlockingOverlay();
+            renderTelemetryPanelUI();
+          }
+        } else if (err.code === 1) { // PERMISSION_DENIED
+          if (telemetryState.driverGpsHardwareState !== 'permission_denied') {
+            telemetryState.driverGpsHardwareState = 'permission_denied';
+            telemetryState.driverStatus = 'detenido';
+            telemetryState.driverStatusNote = '🔴 Permiso GPS denegado en navegador';
+            addDriverLogEvent('🔴 Permiso de GPS denegado en el navegador del celular', 'detenido');
+            const payload = buildDriverTelemetrySnapshot();
+            payload.status = 'detenido';
+            payload.statusNote = '🔴 Permiso GPS denegado en navegador';
+            if (payload.speedKmh) payload.speedKmh = 0;
+            sendTelemetryUpdate(payload);
+            syncDriverGpsBlockingOverlay();
+            renderTelemetryPanelUI();
+          }
+        }
+      },
+      { enableHighAccuracy: true, timeout: 4000, maximumAge: 0 }
+    );
+  }, 4000);
+}
+
 export function startDriverGpsTransmission(silentIfAlreadyRunning = false): void {
   if (isDriverActionLocked()) {
     toast('🔒 Controles bloqueados (Modo Supervisión). Marca la casilla de advertencia superior para habilitar cambios.', 'warn');
@@ -1486,6 +1631,7 @@ export function startDriverGpsTransmission(silentIfAlreadyRunning = false): void
           toast('🟢 Señal GPS restablecida en el dispositivo.', 'success');
         }
 
+        syncDriverGpsBlockingOverlay();
         transmitNow();
         renderTelemetryPanelUI();
       },
@@ -1519,6 +1665,7 @@ export function startDriverGpsTransmission(silentIfAlreadyRunning = false): void
           telemetryState.driverLastCoords.speedKmh = 0;
         }
 
+        syncDriverGpsBlockingOverlay();
         transmitNow();
         renderTelemetryPanelUI();
       },
@@ -1570,6 +1717,7 @@ export function stopDriverGpsTransmission(): void {
   payload.speedKmh = 0;
   sendTelemetryUpdate(payload);
 
+  syncDriverGpsBlockingOverlay();
   toast('Transmisión GPS detenida · Central Cendis notificada', 'info');
   renderTelemetryPanelUI();
 }
@@ -1583,6 +1731,19 @@ export function setDriverOperationalStatus(status: TruckTelemetry['status'], cus
   if (isDriverActionLocked()) {
     toast('🔒 Controles bloqueados (Modo Supervisión). Marca la casilla de advertencia superior si necesitas modificar el viaje.', 'warn');
     return;
+  }
+
+  // Si el conductor tiene el GPS apagado en su teléfono, bloquear cambio de estado operativo (excepto si ya está detenido)
+  if (telemetryState.isDriverExclusiveMode && status !== 'detenido') {
+    if (
+      !telemetryState.driverIsTransmitting ||
+      telemetryState.driverGpsHardwareState === 'disabled_on_device' ||
+      telemetryState.driverGpsHardwareState === 'permission_denied'
+    ) {
+      syncDriverGpsBlockingOverlay();
+      toast('🔴 Bloqueado: Debes encender el GPS de tu celular para cambiar de estado operativo.', 'error');
+      return;
+    }
   }
 
   telemetryState.driverStatus = status;
@@ -1671,6 +1832,20 @@ export function completeCurrentStopAndContinue(): void {
     toast('🔒 Controles bloqueados (Modo Supervisión). Marca la casilla de advertencia superior para habilitar cambios.', 'warn');
     return;
   }
+
+  // Obligatoriedad de GPS activo en el teléfono para registrar entregas
+  if (telemetryState.isDriverExclusiveMode) {
+    if (
+      !telemetryState.driverIsTransmitting ||
+      telemetryState.driverGpsHardwareState === 'disabled_on_device' ||
+      telemetryState.driverGpsHardwareState === 'permission_denied'
+    ) {
+      syncDriverGpsBlockingOverlay();
+      toast('🔴 Bloqueado: No puedes registrar entregas con el GPS de tu celular apagado.', 'error');
+      return;
+    }
+  }
+
   const { nextStop } = getNextPendingStopForDriver();
   if (!nextStop) {
     setDriverOperationalStatus('completado');
@@ -1683,6 +1858,19 @@ export function toggleDriverStopCompleted(stopId: number): void {
   if (isDriverActionLocked()) {
     toast('🔒 Controles bloqueados (Modo Supervisión). Marca la casilla de advertencia superior para evitar marcar entregas por error.', 'warn');
     return;
+  }
+
+  // Obligatoriedad de GPS activo en el teléfono para registrar entregas
+  if (telemetryState.isDriverExclusiveMode) {
+    if (
+      !telemetryState.driverIsTransmitting ||
+      telemetryState.driverGpsHardwareState === 'disabled_on_device' ||
+      telemetryState.driverGpsHardwareState === 'permission_denied'
+    ) {
+      syncDriverGpsBlockingOverlay();
+      toast('🔴 Bloqueado: No puedes registrar entregas con el GPS de tu celular apagado.', 'error');
+      return;
+    }
   }
 
   const rId = telemetryState.driverSelectedRouteId;
@@ -2775,6 +2963,8 @@ if (typeof window !== 'undefined') {
   (window as any).toggleAdminDriverOverride = toggleAdminDriverOverride;
   (window as any).startDriverGpsTransmission = startDriverGpsTransmission;
   (window as any).stopDriverGpsTransmission = stopDriverGpsTransmission;
+  (window as any).retryDriverGpsActivation = retryDriverGpsActivation;
+  (window as any).syncDriverGpsBlockingOverlay = syncDriverGpsBlockingOverlay;
   (window as any).setDriverOperationalStatus = setDriverOperationalStatus;
   (window as any).setDriverPauseReason = setDriverPauseReason;
   (window as any).completeCurrentStopAndContinue = completeCurrentStopAndContinue;
