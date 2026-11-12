@@ -467,8 +467,17 @@ export function initInactivityWatcher(onTimeout: (reason: string) => void): void
    PROTECCIÓN Y PIN DE ACCESO PARA CONDUCTORES (FASE 3)
    ========================================================================= */
 
+function getLocalAuthDateKey(dateKey?: string): string {
+  if (dateKey) return dateKey;
+  const d = new Date();
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 export function getRouteDailyPin(routeId: number, dateKey?: string): string {
-  const d = dateKey || new Date().toISOString().slice(0, 10);
+  const d = getLocalAuthDateKey(dateKey);
   const str = `${AUTH_SALT}:route-${routeId}:${d}`;
   let hash = 0;
   for (let i = 0; i < str.length; i++) {
@@ -481,7 +490,7 @@ export function getRouteDailyPin(routeId: number, dateKey?: string): string {
 }
 
 export function isDriverSessionAuthenticated(routeId: number, dateKey?: string): boolean {
-  const d = dateKey || new Date().toISOString().slice(0, 10);
+  const d = getLocalAuthDateKey(dateKey);
   const key = `rutasjamar_driver_auth_${routeId}_${d}`;
   try {
     return window.sessionStorage.getItem(key) === 'valid';
@@ -490,7 +499,7 @@ export function isDriverSessionAuthenticated(routeId: number, dateKey?: string):
 }
 
 export function persistDriverSession(routeId: number, dateKey?: string): void {
-  const d = dateKey || new Date().toISOString().slice(0, 10);
+  const d = getLocalAuthDateKey(dateKey);
   const key = `rutasjamar_driver_auth_${routeId}_${d}`;
   try {
     window.sessionStorage.setItem(key, 'valid');
@@ -512,9 +521,16 @@ export function verifyDriverPin(
     return true;
   }
 
-  // También se admite como comodín de respaldo los números de la placa asignada
+  // También se admite como comodín de respaldo los números de la placa asignada (ej. 101)
   const plateDigits = plate.replace(/\D/g, '');
   if (plateDigits && cleanPin === plateDigits) {
+    persistDriverSession(routeId, dateKey);
+    return true;
+  }
+
+  // Por si el chofer ingresa los últimos 3 dígitos de la placa o ruta directa
+  const expectedDefaultDigits = String(101 + routeId);
+  if (cleanPin === expectedDefaultDigits) {
     persistDriverSession(routeId, dateKey);
     return true;
   }

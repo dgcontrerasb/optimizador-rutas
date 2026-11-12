@@ -944,17 +944,18 @@ export function copyDriverLinkForRoute(routeId: number): void {
   }
   publishRoutesToTelemetryServer();
   const plate = `JMR-${101 + routeId}`;
-  const pin = getRouteDailyPin(routeId);
   const dateKey = getTodayDateKey();
-  const url = `${window.location.origin}${window.location.pathname}?modo=conductor&ruta=${routeId + 1}&placa=${encodeURIComponent(plate)}&fecha=${dateKey}&bloqueado=1`;
+  const pin = getRouteDailyPin(routeId, dateKey);
+  const plateDigits = String(101 + routeId);
+  const url = `${window.location.origin}${window.location.pathname}?modo=conductor&ruta=${routeId + 1}&placa=${encodeURIComponent(plate)}&fecha=${dateKey}&pin=${pin}&bloqueado=1`;
   if (navigator.clipboard && navigator.clipboard.writeText) {
     navigator.clipboard.writeText(url).then(() => {
-      toast(`📲 Link del Conductor copiado. PIN de acceso: ${pin} (o placa ${plate}).`, 'success');
+      toast(`📲 Link del Conductor copiado. PIN de acceso: ${pin} (o placa ${plateDigits}).`, 'success');
     }).catch(() => {
-      toast(`Enlace del conductor: ${url} (PIN: ${pin})`, 'info');
+      toast(`Enlace del conductor: ${url} (PIN: ${pin} / Placa: ${plateDigits})`, 'info');
     });
   } else {
-    toast(`Enlace del conductor: ${url} (PIN: ${pin})`, 'info');
+    toast(`Enlace del conductor: ${url} (PIN: ${pin} / Placa: ${plateDigits})`, 'info');
   }
 }
 
@@ -1462,51 +1463,87 @@ export function syncDriverGpsBlockingOverlay(): void {
   }
 
   const isDenied = telemetryState.driverGpsHardwareState === 'permission_denied';
-  const title = isDenied ? 'PERMISO DE GPS DENEGADO' : 'GPS DEL CELULAR APAGADO';
+  const title = isDenied ? 'PERMISO DE GPS REQUERIDO' : 'GPS DEL CELULAR APAGADO';
   const subtitle = isDenied
-    ? 'El navegador de tu teléfono no tiene permiso para acceder a tu ubicación. Debes conceder el permiso para registrar entregas y continuar.'
-    : 'Por políticas de auditoría y trazabilidad de <b>Cendis Siberia</b>, es <b>OBLIGATORIO</b> tener el GPS de tu celular encendido para operar y confirmar entregas.';
+    ? 'El navegador de tu teléfono necesita permiso de ubicación para auditar las entregas de Cendis Siberia.'
+    : 'Por políticas de auditoría y trazabilidad de <b>Cendis Siberia</b>, es <b>OBLIGATORIO</b> tener el GPS de tu celular encendido para confirmar entregas.';
 
   const steps = isDenied
     ? `
-      <div class="font-bold text-amber-400 mb-1">¿Cómo solucionarlo?</div>
-      <div>1. Toca el candado o icono de ajustes al lado de la URL del navegador.</div>
-      <div>2. Cambia el permiso de <b>Ubicación</b> a <b>"Permitir"</b>.</div>
-      <div>3. Pulsa el botón abajo para continuar.</div>
+      <div class="font-bold text-amber-400 mb-1">¿Cómo conceder el permiso?</div>
+      <div>1. Recarga la página o abre los permisos del navegador.</div>
+      <div>2. Selecciona <b>"Permitir mientras se usa la app"</b> para la Ubicación.</div>
+      <div>3. Pulsa el botón verde abajo para verificar.</div>
     `
     : `
-      <div class="font-bold text-amber-400 mb-1">¿Cómo activarlo?</div>
-      <div>1. Desliza hacia abajo la barra de notificaciones de tu teléfono móvil.</div>
+      <div class="font-bold text-amber-400 mb-1">¿Cómo activarlo en tu celular?</div>
+      <div>1. Desliza hacia abajo la barra superior de notificaciones de tu teléfono.</div>
       <div>2. Enciende el icono de <b>Ubicación / GPS</b>.</div>
-      <div>3. Si el navegador solicita permiso, pulsa <b>"Permitir"</b>.</div>
+      <div>3. Pulsa el botón verde abajo para verificar la conexión.</div>
     `;
 
   overlay.innerHTML = `
     <div class="max-w-sm w-full mx-auto flex flex-col items-center">
-      <div class="w-20 h-20 rounded-3xl bg-rose-500/20 text-rose-500 border border-rose-500/40 flex items-center justify-center text-4xl mb-4 animate-bounce">
+      <div class="w-16 h-16 rounded-3xl bg-rose-500/20 text-rose-500 border border-rose-500/40 flex items-center justify-center text-3xl mb-3 animate-pulse">
         📡
       </div>
       <span class="px-3 py-1 rounded-full bg-rose-500/20 text-rose-400 text-[10px] font-black uppercase tracking-widest mb-2 border border-rose-500/30">
-        Operación Bloqueada
+        GPS Inactivo
       </span>
-      <h2 class="text-xl font-black text-white mb-2 leading-tight">${title}</h2>
-      <p class="text-xs text-slate-300 mb-5 leading-relaxed">${subtitle}</p>
+      <h2 class="text-lg font-black text-white mb-1.5 leading-tight">${title}</h2>
+      <p class="text-xs text-slate-300 mb-4 leading-relaxed">${subtitle}</p>
 
-      <div class="p-4 rounded-2xl bg-white/5 border border-white/10 text-xs text-slate-200 text-left w-full mb-6 space-y-1.5">
+      <div class="p-3.5 rounded-2xl bg-white/5 border border-white/10 text-xs text-slate-200 text-left w-full mb-5 space-y-1.5">
         ${steps}
       </div>
 
-      <button type="button" onclick="window.retryDriverGpsActivation && window.retryDriverGpsActivation()" class="w-full py-4 px-6 rounded-2xl bg-[#EA580C] hover:bg-[#D94E06] text-white font-black text-sm shadow-xl shadow-orange-600/40 transition active:scale-95 cursor-pointer flex items-center justify-center gap-2">
-        <span>🔄</span> Ya encendí el GPS / Reintentar
-      </button>
+      <div class="w-full space-y-2">
+        <button type="button" onclick="window.retryDriverGpsActivation && window.retryDriverGpsActivation()" class="w-full py-3.5 px-6 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-sm shadow-xl shadow-emerald-600/30 transition active:scale-95 cursor-pointer flex items-center justify-center gap-2">
+          <span>🟢</span> Ya encendí el GPS / Validar Conexión
+        </button>
+
+        <button type="button" onclick="const el = document.getElementById('driverGpsBlockedOverlay'); if (el) el.remove();" class="w-full py-2.5 px-4 rounded-xl bg-white/10 hover:bg-white/20 text-slate-300 font-semibold text-xs transition cursor-pointer">
+          👁️ Ver paradas y mapa (Solo Lectura)
+        </button>
+      </div>
+
       <p class="text-[10px] text-slate-400 mt-3">Ruta ${telemetryState.driverSelectedRouteId + 1} · Camión ${telemetryState.driverPlate}</p>
     </div>
   `;
 }
 
 export function retryDriverGpsActivation(): void {
-  toast('Verificando señal GPS del celular...', 'info');
-  startDriverGpsTransmission(true);
+  toast('📡 Consultando GPS del teléfono móvil...', 'info');
+  if (!('geolocation' in navigator)) {
+    toast('🔴 Tu dispositivo no soporta GPS.', 'error');
+    return;
+  }
+
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      telemetryState.driverGpsHardwareState = 'active';
+      telemetryState.driverLastCoords = {
+        lat: pos.coords.latitude,
+        lng: pos.coords.longitude,
+        speedKmh: Math.round((pos.coords.speed || 0) * 3.6),
+        heading: pos.coords.heading,
+        accuracy: pos.coords.accuracy
+      };
+
+      const overlay = document.getElementById('driverGpsBlockedOverlay');
+      if (overlay) overlay.remove();
+
+      startDriverGpsTransmission(true);
+      toast('🟢 ¡Señal GPS verificada con éxito! Hoja de viaje habilitada.', 'success');
+      renderTelemetryPanelUI();
+    },
+    (err) => {
+      telemetryState.driverGpsHardwareState = err.code === 1 ? 'permission_denied' : 'disabled_on_device';
+      toast('🔴 El GPS de tu celular sigue apagado. Enciende la Ubicación en la barra de tu teléfono.', 'error');
+      syncDriverGpsBlockingOverlay();
+    },
+    { enableHighAccuracy: true, timeout: 4000, maximumAge: 0 }
+  );
 }
 
 export function startDriverGpsHardwareWatchdog(): void {
@@ -1827,52 +1864,7 @@ export function setDriverPauseReason(reason: string): void {
   setDriverOperationalStatus('detenido', reason);
 }
 
-export function completeCurrentStopAndContinue(): void {
-  if (isDriverActionLocked()) {
-    toast('🔒 Controles bloqueados (Modo Supervisión). Marca la casilla de advertencia superior para habilitar cambios.', 'warn');
-    return;
-  }
-
-  // Obligatoriedad de GPS activo en el teléfono para registrar entregas
-  if (telemetryState.isDriverExclusiveMode) {
-    if (
-      !telemetryState.driverIsTransmitting ||
-      telemetryState.driverGpsHardwareState === 'disabled_on_device' ||
-      telemetryState.driverGpsHardwareState === 'permission_denied'
-    ) {
-      syncDriverGpsBlockingOverlay();
-      toast('🔴 Bloqueado: No puedes registrar entregas con el GPS de tu celular apagado.', 'error');
-      return;
-    }
-  }
-
-  const { nextStop } = getNextPendingStopForDriver();
-  if (!nextStop) {
-    setDriverOperationalStatus('completado');
-    return;
-  }
-  toggleDriverStopCompleted(nextStop.id);
-}
-
-export function toggleDriverStopCompleted(stopId: number): void {
-  if (isDriverActionLocked()) {
-    toast('🔒 Controles bloqueados (Modo Supervisión). Marca la casilla de advertencia superior para evitar marcar entregas por error.', 'warn');
-    return;
-  }
-
-  // Obligatoriedad de GPS activo en el teléfono para registrar entregas
-  if (telemetryState.isDriverExclusiveMode) {
-    if (
-      !telemetryState.driverIsTransmitting ||
-      telemetryState.driverGpsHardwareState === 'disabled_on_device' ||
-      telemetryState.driverGpsHardwareState === 'permission_denied'
-    ) {
-      syncDriverGpsBlockingOverlay();
-      toast('🔴 Bloqueado: No puedes registrar entregas con el GPS de tu celular apagado.', 'error');
-      return;
-    }
-  }
-
+function executeToggleDriverStop(stopId: number): void {
   const rId = telemetryState.driverSelectedRouteId;
   const routeObj = (S.routes || []).find(r => r.id === rId);
   const stops = routeObj ? active(routeObj) : [];
@@ -1909,6 +1901,81 @@ export function toggleDriverStopCompleted(stopId: number): void {
   telemetryState.driverPacketsSent += 1;
   telemetryState.driverLastSentAt = Date.now();
   sendTelemetryUpdate(payload);
+  renderTelemetryPanelUI();
+  renderCompletedStopsBadgesOnMap();
+}
+
+export function completeCurrentStopAndContinue(): void {
+  if (isDriverActionLocked()) {
+    toast('🔒 Controles bloqueados (Modo Supervisión). Marca la casilla de advertencia superior para habilitar cambios.', 'warn');
+    return;
+  }
+
+  const { nextStop } = getNextPendingStopForDriver();
+  if (!nextStop) {
+    setDriverOperationalStatus('completado');
+    return;
+  }
+  toggleDriverStopCompleted(nextStop.id);
+}
+
+export function toggleDriverStopCompleted(stopId: number): void {
+  if (isDriverActionLocked()) {
+    toast('🔒 Controles bloqueados (Modo Supervisión). Marca la casilla de advertencia superior para evitar marcar entregas por error.', 'warn');
+    return;
+  }
+
+  // OBLIGATORIEDAD ABSOLUTA: Si el chofer está en su celular, consultar el hardware GPS en este segundo exacto (sin caché)
+  if (telemetryState.isDriverExclusiveMode) {
+    if (!('geolocation' in navigator)) {
+      toast('🔴 Tu dispositivo no soporta GPS.', 'error');
+      return;
+    }
+
+    toast('📡 Verificando señal GPS de tu celular en vivo...', 'info');
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        telemetryState.driverGpsHardwareState = 'active';
+        telemetryState.driverLastCoords = {
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+          speedKmh: Math.round((pos.coords.speed || 0) * 3.6),
+          heading: pos.coords.heading,
+          accuracy: pos.coords.accuracy
+        };
+        // GPS confirmado en hardware en este segundo: proceder con la entrega
+        executeToggleDriverStop(stopId);
+      },
+      (err) => {
+        // GPS apagado en el celular o permiso denegado: BLOQUEO INVIOLABLE
+        telemetryState.driverGpsHardwareState = err.code === 1 ? 'permission_denied' : 'disabled_on_device';
+        telemetryState.driverStatus = 'detenido';
+        telemetryState.driverStatusNote = '🔴 GPS apagado en el teléfono móvil';
+        if (telemetryState.driverLastCoords) telemetryState.driverLastCoords.speedKmh = 0;
+
+        addDriverLogEvent('🔴 Intento de entrega bloqueado: GPS del celular apagado', 'detenido');
+
+        const payload = buildDriverTelemetrySnapshot();
+        payload.status = 'detenido';
+        payload.statusNote = '🔴 GPS apagado en el teléfono móvil';
+        payload.speedKmh = 0;
+        sendTelemetryUpdate(payload);
+
+        syncDriverGpsBlockingOverlay();
+        toast('🔴 ENTREGA BLOQUEADA: Tu teléfono tiene el GPS apagado. Enciende la Ubicación en tu celular para confirmar.', 'error');
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 3500,
+        maximumAge: 0 // Cero caché: fuerza lectura de satélites / hardware del teléfono
+      }
+    );
+    return;
+  }
+
+  // Si está operando desde la consola de Despacho / Coordinador
+  executeToggleDriverStop(stopId);
 }
 
 // ============================================================================
