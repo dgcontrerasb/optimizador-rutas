@@ -661,11 +661,25 @@ export function renderTelemetryOnMap(): void {
 
   const currentIds = new Set<string>();
 
+  // Si el Coordinador no tiene rutas cargadas en memoria, limpiar todo marcador huérfano y salir
+  if (!telemetryState.isDriverExclusiveMode) {
+    if (!S.routes || !S.routes.length) {
+      layer.clearLayers();
+      truckMarkersMap.clear();
+      return;
+    }
+  }
+
   telemetryState.trucks.forEach((truck) => {
     if (!Number.isFinite(truck.lat) || !Number.isFinite(truck.lng)) return;
-    // En modo exclusivo conductor, mostrar únicamente el camión de su propia ruta
-    if (telemetryState.isDriverExclusiveMode && truck.routeId !== telemetryState.driverSelectedRouteId) {
-      return;
+
+    // En modo exclusivo conductor: mostrar únicamente el camión de su propia ruta
+    if (telemetryState.isDriverExclusiveMode) {
+      if (truck.routeId !== telemetryState.driverSelectedRouteId) return;
+    } else {
+      // En modo Coordinador: solo mostrar camiones cuya ruta esté planificada y visible en la sesión actual
+      const activeRoute = (S.routes || []).find((r: any) => r.id === truck.routeId);
+      if (!activeRoute || activeRoute.visible === false) return;
     }
 
     currentIds.add(truck.truckId);
@@ -1716,13 +1730,7 @@ export function toggleFleetLiveTelemetryDemo(): void {
   }
 
   if (!S.routes || !S.routes.length) {
-    if ((window as any).loadLiveDemo) {
-      (window as any).loadLiveDemo();
-    }
-  }
-
-  if (!S.routes || !S.routes.length) {
-    toast('Primero carga un archivo Excel o activa la Demo en Vivo', 'warn');
+    toast('Primero carga un archivo Excel con tus rutas o activa la Demo en Vivo', 'warn');
     return;
   }
 
@@ -1852,14 +1860,34 @@ export function clearAllTelemetryTrucks(): void {
   stopFleetLiveTelemetryDemo();
   telemetryState.trucks.clear();
   telemetryState.followingTruckId = null;
-  renderTelemetryOnMap();
-  renderTelemetryPanelUI();
+
+  if (mapTelemetryLayer) {
+    mapTelemetryLayer.clearLayers();
+  }
+  truckMarkersMap.clear();
+
+  // Limpiar telemetría de hoy en Firebase Realtime Database
+  const today = getTodayDateKey();
+  const targetUrl = buildFirebaseUrl(`/telemetria/${today}.json`);
+  if (targetUrl) {
+    fetch(targetUrl, { method: 'DELETE' }).catch(() => {});
+  }
+
+  // Limpiar rutas activas de hoy en Firebase
+  const routesUrl = buildFirebaseUrl(`/rutas_activas/${today}.json`);
+  if (routesUrl) {
+    fetch(routesUrl, { method: 'DELETE' }).catch(() => {});
+  }
 
   if (wsClient && wsClient.readyState === WebSocket.OPEN) {
     wsClient.send(JSON.stringify({ type: 'telemetry:clear' }));
   } else {
     fetch('/api/telemetry/all', { method: 'DELETE' }).catch(() => {});
   }
+
+  renderTelemetryOnMap();
+  renderTelemetryPanelUI();
+  toast('🗑️ Telemetría y camiones de prueba eliminados de memoria y de la nube', 'info');
 }
 
 // ============================================================================
@@ -2039,29 +2067,13 @@ export function renderTelemetryPanelUI(): void {
           `);
         }
       });
-    } else if (trucksList.length > 0) {
-      trucksList.forEach((liveTruck) => {
-        const isFollowing = telemetryState.followingTruckId === liveTruck.truckId;
-        cardsHtml.push(`
-          <div class="p-3 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 space-y-2">
-            <div class="flex items-center justify-between">
-              <strong class="text-xs text-slate-900 dark:text-white">${esc(liveTruck.routeName)} · ${esc(liveTruck.vehiclePlate)}</strong>
-              ${getStatusBadgeHtml(liveTruck.status)}
-            </div>
-            <div class="text-[11px] text-slate-500">👤 ${esc(liveTruck.driverName)} · ${Math.round(liveTruck.speedKmh)} km/h</div>
-            <button type="button" onclick="window.focusTruckOnMap('${liveTruck.truckId}')" class="w-full py-1.5 px-3 rounded-xl bg-[#EA580C] text-white text-[11px] font-bold cursor-pointer">
-              🎯 ${isFollowing ? 'Siguiendo en Mapa' : 'Ubicar en Mapa'}
-            </button>
-          </div>
-        `);
-      });
     } else {
       cardsHtml.push(`
         <div class="py-8 px-3 text-center rounded-2xl border border-dashed border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/30 space-y-2">
           <div class="text-2xl">🛰️</div>
-          <p class="text-xs font-bold text-slate-700 dark:text-slate-200">Sin vehículos transmitiendo</p>
+          <p class="text-xs font-bold text-slate-700 dark:text-slate-200">Sin rutas cargadas</p>
           <p class="text-[11px] text-slate-400 leading-relaxed">
-            Carga tus rutas o activa la <b>Demo en Vivo</b> y pulsa <b>Simular Camiones en Ruta</b> o abre <b>📱 Chofer</b> para ver la pantalla del repartidor.
+            Carga un archivo Excel o pulsa <b>Demo en Vivo</b> para generar rutas y supervisar la flota en tiempo real.
           </p>
         </div>
       `);
