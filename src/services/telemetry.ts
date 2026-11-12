@@ -64,6 +64,7 @@ export const telemetryState = {
     heading: number | null;
     accuracy: number | null;
   } | null,
+  driverGpsHardwareState: 'idle' as 'idle' | 'active' | 'disabled_on_device' | 'permission_denied' | 'searching',
   driverPacketsSent: 0,
   driverLastSentAt: 0,
   driverCompletedStops: new Set<number>(),
@@ -1343,17 +1344,32 @@ function buildDriverTelemetrySnapshot(): Partial<TruckTelemetry> & { truckId: st
   const rId = telemetryState.driverSelectedRouteId;
   const { nextStop, nextIdx, stops } = getNextPendingStopForDriver();
   const completedIds = Array.from(telemetryState.driverCompletedStops);
+  const existingTruck = telemetryState.trucks.get(`ruta-${rId + 1}`);
 
-  const defaultLat = nextStop?.lat || stops[0]?.lat || DEPOT.lat;
-  const defaultLng = nextStop?.lng || stops[0]?.lng || DEPOT.lng;
+  // Coordenadas: usar únicamente coordenadas GPS físicas reales obtenidas del dispositivo del conductor.
+  // Si aún no se ha obtenido señal satelital o permisos, la unidad se reporta en la base Cendis Siberia a 0 km/h.
+  // BAJO NINGUNA CIRCUNSTANCIA se usan coordenadas de paradas de clientes como posición del camión.
+  const hasRealGps = telemetryState.driverLastCoords !== null;
+  const lat = hasRealGps
+    ? telemetryState.driverLastCoords!.lat
+    : (existingTruck?.lat ?? DEPOT.lat);
+  const lng = hasRealGps
+    ? telemetryState.driverLastCoords!.lng
+    : (existingTruck?.lng ?? DEPOT.lng);
+  const speed = hasRealGps && telemetryState.driverStatus === 'en_ruta'
+    ? (telemetryState.driverLastCoords!.speedKmh || 0)
+    : 0;
 
-  const coords = telemetryState.driverLastCoords || {
-    lat: defaultLat,
-    lng: defaultLng,
-    speedKmh: telemetryState.driverStatus === 'en_ruta' ? 32 : 0,
-    heading: 90,
-    accuracy: 8
-  };
+  let note = telemetryState.driverStatusNote;
+  if (!hasRealGps) {
+    if (telemetryState.driverGpsHardwareState === 'disabled_on_device') {
+      note = '🔴 GPS apagado en el teléfono móvil';
+    } else if (telemetryState.driverGpsHardwareState === 'permission_denied') {
+      note = '🔴 Permiso GPS denegado en navegador';
+    } else if (telemetryState.driverIsTransmitting) {
+      note = '🟡 Esperando que el conductor active el GPS en su celular';
+    }
+  }
 
   return {
     truckId: `ruta-${rId + 1}`,
@@ -1362,13 +1378,13 @@ function buildDriverTelemetrySnapshot(): Partial<TruckTelemetry> & { truckId: st
     routeColor: getRouteColorById(rId),
     vehiclePlate: telemetryState.driverPlate.trim() || `JMR-${101 + rId}`,
     driverName: telemetryState.driverName.trim() || `Conductor Ruta ${rId + 1}`,
-    lat: coords.lat,
-    lng: coords.lng,
-    speedKmh: telemetryState.driverStatus === 'en_ruta' ? (coords.speedKmh || 32) : 0,
-    heading: coords.heading,
-    accuracy: coords.accuracy,
+    lat,
+    lng,
+    speedKmh: speed,
+    heading: hasRealGps ? telemetryState.driverLastCoords!.heading : null,
+    accuracy: hasRealGps ? telemetryState.driverLastCoords!.accuracy : null,
     status: telemetryState.driverStatus,
-    statusNote: telemetryState.driverStatusNote,
+    statusNote: note,
     statusSince: telemetryState.driverStatusSince,
     currentStopIndex: Math.max(0, nextIdx),
     totalStops: stops.length,
@@ -1408,15 +1424,10 @@ export function startDriverGpsTransmission(silentIfAlreadyRunning = false): void
     telemetryState.driverStatus = 'en_ruta';
   }
 
-  const { nextStop } = getNextPendingStopForDriver();
+  // NOTA: NO asignar coordenadas falsas de clientes al iniciar.
+  // driverLastCoords permanece como null hasta que el GPS del celular envíe su primera posición real.
   if (!telemetryState.driverLastCoords) {
-    telemetryState.driverLastCoords = {
-      lat: nextStop?.lat || DEPOT.lat,
-      lng: nextStop?.lng || DEPOT.lng,
-      speedKmh: 32,
-      heading: 90,
-      accuracy: 8
-    };
+    telemetryState.driverStatusNote = '🟡 Solicitando señal GPS del celular...';
   }
 
   addDriverLogEvent(`📡 Inició viaje y transmisión GPS (${telemetryState.driverPlate}) cada ${telemetryState.driverIntervalSec}s`, telemetryState.driverStatus);
@@ -1429,16 +1440,19 @@ export function startDriverGpsTransmission(silentIfAlreadyRunning = false): void
     sendTelemetryUpdate(payload);
   };
 
-  // Enviar primer paquete inmediato (con el nuevo evento de bitácora incluido) para que el camión y la bitácora aparezcan al instante en el Admin
   transmitNow();
 
   if ('geolocation' in navigator) {
     telemetryState.driverWatchId = navigator.geolocation.watchPosition(
       (pos) => {
+        const wasGpsDisabled = telemetryState.driverGpsHardwareState === 'disabled_on_device' ||
+                               telemetryState.driverGpsHardwareState === 'permission_denied';
+        telemetryState.driverGpsHardwareState = 'active';
+
         const speedMs = pos.coords.speed;
         const calcSpeedKmh = speedMs !== null && speedMs !== undefined && speedMs > 0
           ? Math.round(speedMs * 3.6)
-          : (telemetryState.driverStatus === 'en_ruta' ? 30 : 0);
+          : (telemetryState.driverStatus === 'en_ruta' ? 28 : 0);
 
         telemetryState.driverLastCoords = {
           lat: pos.coords.latitude,
@@ -1447,27 +1461,56 @@ export function startDriverGpsTransmission(silentIfAlreadyRunning = false): void
           heading: pos.coords.heading,
           accuracy: pos.coords.accuracy
         };
-        transmitNow();
-      },
-      (_err) => {
-        const { nextStop: fallbackPt } = getNextPendingStopForDriver();
-        if (fallbackPt && fallbackPt.lat && fallbackPt.lng) {
-          telemetryState.driverLastCoords = {
-            lat: fallbackPt.lat,
-            lng: fallbackPt.lng,
-            speedKmh: telemetryState.driverStatus === 'en_ruta' ? 32 : 0,
-            heading: 90,
-            accuracy: 10
-          };
+
+        if (wasGpsDisabled) {
+          addDriverLogEvent('🟢 Señal GPS del celular restablecida por el conductor', telemetryState.driverStatus);
+          toast('🟢 Señal GPS restablecida en el dispositivo.', 'success');
         }
+
         transmitNow();
+        renderTelemetryPanelUI();
+      },
+      (err) => {
+        // DETECCIÓN EXACTA DEL ESTADO DEL GPS DEL TELÉFONO
+        if (err.code === 2) { // POSITION_UNAVAILABLE -> El conductor apagó el GPS en su celular
+          if (telemetryState.driverGpsHardwareState !== 'disabled_on_device') {
+            telemetryState.driverGpsHardwareState = 'disabled_on_device';
+            addDriverLogEvent('🔴 GPS del celular apagado / deshabilitado por el conductor', 'detenido');
+            toast('🔴 Ubicación GPS apagada en tu celular. Enciende el GPS en los ajustes rápidos de tu teléfono.', 'error');
+          }
+          telemetryState.driverStatus = 'detenido';
+          telemetryState.driverStatusNote = '🔴 GPS apagado en el teléfono móvil';
+        } else if (err.code === 1) { // PERMISSION_DENIED -> Rechazó o revocó el permiso en el navegador
+          if (telemetryState.driverGpsHardwareState !== 'permission_denied') {
+            telemetryState.driverGpsHardwareState = 'permission_denied';
+            addDriverLogEvent('🔴 Permiso de GPS denegado en el navegador del celular', 'detenido');
+            toast('🔴 Permiso de GPS denegado. Concede permisos de ubicación al navegador para continuar.', 'error');
+          }
+          telemetryState.driverStatus = 'detenido';
+          telemetryState.driverStatusNote = '🔴 Permiso GPS denegado en navegador';
+        } else { // TIMEOUT
+          if (telemetryState.driverGpsHardwareState !== 'searching') {
+            telemetryState.driverGpsHardwareState = 'searching';
+            addDriverLogEvent('⚠️ Buscando satélites GPS (sin señal en el celular)', 'detenido');
+          }
+          telemetryState.driverStatusNote = '⚠️ Buscando señal GPS satelital...';
+        }
+
+        if (telemetryState.driverLastCoords) {
+          telemetryState.driverLastCoords.speedKmh = 0;
+        }
+
+        transmitNow();
+        renderTelemetryPanelUI();
       },
       {
         enableHighAccuracy: true,
-        maximumAge: 5000,
+        maximumAge: 3000,
         timeout: 10000
       }
     );
+  } else {
+    addDriverLogEvent('🔴 El navegador del dispositivo no soporta geolocalización', 'detenido');
   }
 
   telemetryState.driverIntervalId = setInterval(() => {
@@ -1540,19 +1583,6 @@ export function setDriverOperationalStatus(status: TruckTelemetry['status'], cus
       startDriverGpsTransmission(true);
     }
 
-    if (nextStop && nextStop.lat && nextStop.lng) {
-      telemetryState.driverLastCoords = {
-        lat: nextStop.lat,
-        lng: nextStop.lng,
-        speedKmh: 34,
-        heading: 90,
-        accuracy: 8
-      };
-      if (S.map) {
-        S.map.flyTo([nextStop.lat, nextStop.lng], 14, { animate: true, duration: 0.7 });
-      }
-    }
-
     addDriverLogEvent(`🟢 En Ruta: Hacia ${nextClientName}`, 'en_ruta');
     toast(`🟢 Estado actualizado: En Ruta hacia ${nextClientName}`, 'success');
   } else if (status === 'entregando') {
@@ -1562,19 +1592,6 @@ export function setDriverOperationalStatus(status: TruckTelemetry['status'], cus
 
     if (!telemetryState.driverIsTransmitting) {
       startDriverGpsTransmission(true);
-    }
-
-    if (nextStop && nextStop.lat && nextStop.lng) {
-      telemetryState.driverLastCoords = {
-        lat: nextStop.lat,
-        lng: nextStop.lng,
-        speedKmh: 0,
-        heading: 0,
-        accuracy: 5
-      };
-      if (S.map) {
-        S.map.flyTo([nextStop.lat, nextStop.lng], 16, { animate: true, duration: 0.7 });
-      }
     }
 
     addDriverLogEvent(`📦 Inició entrega donde cliente: ${nextClientName}`, 'entregando');
@@ -1662,15 +1679,6 @@ export function toggleDriverStopCompleted(stopId: number): void {
     addDriverLogEvent(`↩️ Reabrió entrega de ${clientLabel}`, telemetryState.driverStatus);
   } else {
     telemetryState.driverCompletedStops.add(stopId);
-    if (targetStop && targetStop.lat && targetStop.lng) {
-      telemetryState.driverLastCoords = {
-        lat: targetStop.lat,
-        lng: targetStop.lng,
-        speedKmh: 0,
-        heading: null,
-        accuracy: 6
-      };
-    }
     addDriverLogEvent(`✓ Entregado cliente: ${clientLabel}`, 'en_ruta');
     toast(`✅ Pedido marcado como ENTREGADO: ${clientLabel}`, 'success');
 
@@ -2270,12 +2278,39 @@ export function renderTelemetryPanelUI(): void {
   if (driverGpsStats) {
     const c = telemetryState.driverLastCoords;
     const pctDone = totalStopsCount > 0 ? Math.round((completedCount / totalStopsCount) * 100) : 0;
+    let gpsStatusBadgeHtml = '';
+    if (telemetryState.driverIsTransmitting) {
+      if (telemetryState.driverGpsHardwareState === 'disabled_on_device') {
+        gpsStatusBadgeHtml = `
+          <div class="p-2.5 rounded-xl bg-rose-500/15 border border-rose-500/40 text-rose-600 dark:text-rose-300 text-xs font-bold flex items-center gap-2">
+            <span>🔴</span>
+            <span>Ubicación GPS apagada en el celular. Activa el GPS en los ajustes de tu teléfono.</span>
+          </div>
+        `;
+      } else if (telemetryState.driverGpsHardwareState === 'permission_denied') {
+        gpsStatusBadgeHtml = `
+          <div class="p-2.5 rounded-xl bg-rose-500/15 border border-rose-500/40 text-rose-600 dark:text-rose-300 text-xs font-bold flex items-center gap-2">
+            <span>🔴</span>
+            <span>Permiso de GPS no concedido. Permite la ubicación en el navegador del teléfono.</span>
+          </div>
+        `;
+      } else if (!c) {
+        gpsStatusBadgeHtml = `
+          <div class="p-2.5 rounded-xl bg-amber-500/15 border border-amber-500/40 text-amber-700 dark:text-amber-300 text-xs font-semibold flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-amber-500 animate-ping shrink-0"></span>
+            <span>Esperando señal GPS del celular... Acepta el permiso en la pantalla de tu móvil.</span>
+          </div>
+        `;
+      }
+    }
+
     driverGpsStats.innerHTML = `
       <div class="space-y-2">
+        ${gpsStatusBadgeHtml}
         <div class="grid grid-cols-2 gap-2 text-[11px]">
           <div class="p-2 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/70 dark:border-slate-700">
             <span class="text-[10px] text-slate-400 block">Coordenadas GPS</span>
-            <strong class="font-mono text-slate-800 dark:text-slate-100">${c ? `${c.lat.toFixed(4)}, ${c.lng.toFixed(4)}` : 'Listo para enviar'}</strong>
+            <strong class="font-mono text-slate-800 dark:text-slate-100">${c ? `${c.lat.toFixed(4)}, ${c.lng.toFixed(4)}` : (telemetryState.driverIsTransmitting ? 'Conectando...' : 'Listo para iniciar')}</strong>
           </div>
           <div class="p-2 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/70 dark:border-slate-700">
             <span class="text-[10px] text-slate-400 block">Señal a Central</span>
@@ -2750,4 +2785,34 @@ if (typeof window !== 'undefined') {
       sendTelemetryUpdate(payload);
     }
   });
+
+  if (typeof navigator !== 'undefined' && 'permissions' in navigator) {
+    try {
+      navigator.permissions.query({ name: 'geolocation' as any }).then((p) => {
+        p.onchange = () => {
+          if (p.state === 'denied') {
+            if (telemetryState.driverGpsHardwareState !== 'permission_denied') {
+              telemetryState.driverGpsHardwareState = 'permission_denied';
+              addDriverLogEvent('🔴 Permiso de GPS revocado por el conductor en el celular', 'detenido');
+              telemetryState.driverStatus = 'detenido';
+              telemetryState.driverStatusNote = '🔴 Permiso GPS revocado en el dispositivo';
+              if (telemetryState.driverLastCoords) telemetryState.driverLastCoords.speedKmh = 0;
+              const payload = buildDriverTelemetrySnapshot();
+              payload.status = 'detenido';
+              payload.statusNote = '🔴 Permiso GPS revocado en el dispositivo';
+              payload.speedKmh = 0;
+              sendTelemetryUpdate(payload);
+              renderTelemetryPanelUI();
+            }
+          } else if (p.state === 'granted') {
+            if (telemetryState.driverGpsHardwareState === 'permission_denied') {
+              telemetryState.driverGpsHardwareState = 'active';
+              addDriverLogEvent('🟢 Permiso de GPS concedido por el conductor en el celular', telemetryState.driverStatus);
+              renderTelemetryPanelUI();
+            }
+          }
+        };
+      }).catch(() => {});
+    } catch (_e) {}
+  }
 }
